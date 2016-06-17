@@ -13,7 +13,7 @@ import swing.Dialog.Message
 import swing.Swing.EmptyIcon
 import java.io.{ File, BufferedWriter => JBufferedWriter, FileWriter => JFileWriter }
 import javax.swing.filechooser.FileFilter
-import javax.swing.WindowConstants
+import javax.swing.{ JComponent, JLayer, WindowConstants }
 
 import at.logic.gapt.formats.latex.ProofToLatexExporter
 import java.awt.image.BufferedImage
@@ -111,27 +111,15 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
     peer setDefaultCloseOperation WindowConstants.DISPOSE_ON_CLOSE
   }
 
-  var mainComponent = createMainComponent( defaultFontSize )
-  protected var contentPanel_ = new PTContentPanel( this, name, mainComponent, defaultFontSize )
-  scrollPane.contentPanel = contentPanel_
-  def contentPanel = contentPanel_
+  val mainComponent = createMainComponent( defaultFontSize )
+  val contentPanel = new PTContentPanel( this, name, mainComponent, defaultFontSize )
+  val layerUI = new ZoomUI
+  val jlayer = new JLayer[JComponent]( contentPanel.peer, layerUI )
+  scrollPane.peer.setViewportView( jlayer )
 
   // Function that creates the main component from the content object, e.g., put an LKProof in a DrawSequentProof object.
   // Subclasses need to implement this!
   def createMainComponent( fSize: Int ): MainComponentType
-
-  /**
-   * Resizes the content to a new font size.
-   *
-   * @param fSize The new font size.
-   */
-  def resizeContent( fSize: Int ): Unit = {
-    scrollPane.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
-    mainComponent = createMainComponent( fSize )
-    contentPanel_ = new PTContentPanel( this, name, mainComponent, fSize )
-    scrollPane.contentPanel = contentPanel_
-    scrollPane.cursor = java.awt.Cursor.getDefaultCursor
-  }
 
   /**
    * Opens a proof db and displays all its contents.
@@ -236,33 +224,16 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
     }
   }
 
-  /**
-   * Zooms in by multiplying font size by 3/2.
-   */
-  def zoomIn() {
-    currentFontSize * 3 / 2 match {
-      case j: Int if j > 72 =>
-      case j: Int =>
-        currentFontSize = j
-        resizeContent( j )
-    }
+  def zoomAbsolute( factor: Double ) = {
+    layerUI.zoom = math.max( 0.1, math.min( factor, 8 ) )
+    println( s"New zoom ${layerUI.zoom}" )
+    jlayer.doLayout()
+    scrollPane.peer.setViewportView( jlayer )
   }
-
-  /**
-   * Zooms out by multiplying font size by 2/3.
-   */
-  def zoomOut() {
-    currentFontSize / 3 * 2 match {
-      case j: Int if j < 1 =>
-      case j: Int =>
-        currentFontSize = j
-        resizeContent( j )
-    }
-  }
-
-  def inputMessage( message: String, values: Seq[String] ) =
-    Dialog.showInput[String]( scrollPane, message, "ProofTool Input", Dialog.Message.Plain, EmptyIcon, values,
-      if ( values.isEmpty ) "" else values.head )
+  def zoomRelative( factorMultiplier: Double ) =
+    zoomAbsolute( layerUI.zoom * factorMultiplier )
+  def zoomIn() = zoomRelative( 3.0 / 2.0 )
+  def zoomOut() = zoomRelative( 2.0 / 3.0 )
 
   /**
    * Displays an info message.
