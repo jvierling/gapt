@@ -1,31 +1,32 @@
 package at.logic.gapt.proofs.ceres_omega
 
+import at.logic.gapt.examples._
 import at.logic.gapt.expr._
 import at.logic.gapt.expr.fol.replaceAbstractions
 import at.logic.gapt.expr.hol.{ HOLOrdering, containsQuantifierOnLogicalLevel, freeHOVariables }
-import at.logic.gapt.formats.llk.LLKProofParser
+import at.logic.gapt.formats.ClasspathInputFile
+import at.logic.gapt.formats.llk.{ ExtendedProofDatabase, LLKProofParser }
 import at.logic.gapt.formats.tptp.TPTPFOLExporter
 import at.logic.gapt.proofs.ceres.CERES
-import at.logic.gapt.proofs.lk.{ AtomicExpansion, DefinitionElimination, regularize, LKToLKsk }
+import at.logic.gapt.proofs.lk.{ AtomicExpansion, DefinitionElimination, LKProof, LKToLKsk, regularize }
 import at.logic.gapt.proofs.lksk.LKskProof.LabelledFormula
 import at.logic.gapt.proofs.lksk._
 import at.logic.gapt.proofs.ral._
 import at.logic.gapt.proofs._
+import at.logic.gapt.proofs.SequentMatchers
 import at.logic.gapt.provers.prover9.Prover9
-import at.logic.gapt.utils.logging.Logger
+import at.logic.gapt.utils.Logger
 import org.specs2.mutable._
-
-import scala.io.Source
 
 //TODO: Fix the test!
 
-class ceres_omegaTest extends Specification with Logger {
+class ceres_omegaTest extends Specification with SequentMatchers with Logger {
 
   def load( file: String, pname: String ) =
-    LLKProofParser.parseString( Source fromInputStream getClass.getClassLoader.getResourceAsStream( file ) mkString ).proof( pname )
+    LLKProofParser( ClasspathInputFile( file ) ).proof( pname )
 
   def prepareProof( file: String, proofname: String ) = {
-    val p = LLKProofParser.parseString( Source.fromInputStream( getClass.getClassLoader getResourceAsStream file ).mkString )
+    val p = LLKProofParser( ClasspathInputFile( file ) )
     val elp = AtomicExpansion( DefinitionElimination( p.Definitions )( regularize( p.proof( proofname ) ) ) )
     val selp = LKToLKsk( elp )
     val struct = extractStructFromLKsk( selp )
@@ -74,7 +75,7 @@ class ceres_omegaTest extends Specification with Logger {
   "Ceres omega Projections" should {
     "be computed for a cut-free proof" in {
       val filename = "tape3ex.llk"
-      val pdb = LLKProofParser.parseString( Source.fromInputStream( getClass.getClassLoader getResourceAsStream filename ).mkString )
+      val pdb = LLKProofParser( ClasspathInputFile( filename ) )
       val elp = AtomicExpansion( DefinitionElimination( pdb.Definitions )( regularize( pdb proof "INFTAPE" ) ) )
       val selp = LKToLKsk( elp )
       val proj = Projections( selp, CERES.skipPropositional )
@@ -87,7 +88,7 @@ class ceres_omegaTest extends Specification with Logger {
 
     "be computed for the ntape proof" in {
       val filename = "tape3ex.llk"
-      val pdb = LLKProofParser.parseString( Source.fromInputStream( getClass.getClassLoader getResourceAsStream filename ).mkString )
+      val pdb = LLKProofParser( ClasspathInputFile( filename ) )
       val elp = AtomicExpansion( DefinitionElimination( pdb.Definitions )( regularize( pdb proof "TAPEPROOF" ) ) )
       val selp = LKToLKsk( elp )
       val proj = Projections( selp, CERES.skipPropositional )
@@ -100,18 +101,18 @@ class ceres_omegaTest extends Specification with Logger {
       val ( pqs, abspcss ) = replaceAbstractions( formulas( pcss ) )
       val ( cqs, abscss ) = replaceAbstractions( formulas( css ) )
 
-      debug( "=== projection css ===" )
-      abspcss.map( x => debug( x.toString ) )
-      debug( "=== projection replacement terms ===" )
-      pqs.map( x => debug( x._2 + " -> " + x._1 ) )
-      debug( TPTPFOLExporter.tptp_problem( abspcss.asInstanceOf[List[HOLClause]] ).toString )
+      info( "=== projection css ===" )
+      abspcss.map( x => info( x.toString ) )
+      info( "=== projection replacement terms ===" )
+      pqs.map( x => info( x._2 + " -> " + x._1 ) )
+      info( TPTPFOLExporter.tptp_problem( abspcss.asInstanceOf[List[HOLClause]] ).toString )
 
-      debug( "=== computed css ===" )
-      abscss.map( x => debug( x.toString ) )
-      debug( TPTPFOLExporter.tptp_problem( abscss.asInstanceOf[List[HOLClause]] ).toString )
+      info( "=== computed css ===" )
+      abscss.map( x => info( x.toString ) )
+      info( TPTPFOLExporter.tptp_problem( abscss.asInstanceOf[List[HOLClause]] ).toString )
 
-      debug( "=== css replacement terms ===" )
-      cqs.map( x => debug( x._2 + " -> " + x._1 ) )
+      info( "=== css replacement terms ===" )
+      cqs.map( x => info( x._2 + " -> " + x._1 ) )
 
       /*
       pcss.forall( x => css.exists( y =>
@@ -126,7 +127,7 @@ class ceres_omegaTest extends Specification with Logger {
 
     "be computed for the first-order permutation example" in {
       val filename = "perm.llk"
-      val pdb = LLKProofParser.parseString( Source.fromInputStream( getClass.getClassLoader getResourceAsStream filename ).mkString )
+      val pdb = LLKProofParser( ClasspathInputFile( filename ) )
       val elp = AtomicExpansion( DefinitionElimination( pdb.Definitions )( regularize( pdb proof "AxProof" ) ) )
       val selp = LKToLKsk( elp )
 
@@ -142,15 +143,27 @@ class ceres_omegaTest extends Specification with Logger {
 
   "Ceres_omega" should {
     "handle a proof with a manual refutation (1)" in {
-      //skipped( "ceres omega still has problems" )
+      skipped( "refutation1 throws errors during creation; don't know if LKskToExpansionProof works" )
       val ( p, cs, struct, proj ) = prepareProof( "llk/simple-leibnizeq.llk", "THEPROOF" )
-      //val rp = refutation1( cs.map( _.map( _._2 ) ) )
+      val rp = refutation1( cs.map( _.map( _._2 ) ) )
 
-      //val ( acnf, _ ) = ceres_omega( proj, rp, p.conclusion, struct )
+      val ( acnf, _ ) = ceres_omega( proj, rp, p.conclusion, struct )
       //TODO: fix LKskToExpansionProof
-      //val et = LKskToExpansionProof( acnf )
+      val et = LKskToExpansionProof( acnf )
       ok
     }
+
+    "a simple intuitionistic proof" in {
+      if ( !Prover9.isInstalled ) skipped( "No Prover9 installed!" )
+      object CE extends AnalysisWithCeresOmega {
+        override def proofdb() = ExtendedProofDatabase( Map[HOLFormula, LKProof]( hof"THEPROOF" -> fol2.proof ), Map(), Map() )
+        override def root_proof = "THEPROOF";
+        override def skip_strategy() = CERES.skipNothing
+      }
+
+      CE.acnf.conclusion must beMultiSetEqual( CE.lksk_proof.conclusion )
+    }
+
   }
 
 }

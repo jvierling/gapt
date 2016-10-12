@@ -1,11 +1,29 @@
 # Release notes for GAPT
 
-## Version 2.2 (unreleased)
+## Version 2.4 (unreleased)
+
+## Version 2.3 (release on 2016-10-10)
+
+* The minimum required Java version is now Java 8
+* String interpolators for sequents
+* `:-` operator to construct sequents
+* `loadExpansionProof` provides convenient access to TSTP proof import
+* Refactored prooftool supports n-ary inferences now
+* Conversion of unit-equational resolution proofs to unary LK proofs
+* Special class for polarities instead of Booleans
+* Support for Vampire 4.1
+* Support for SPASS 3.9
+* Context now support polymorphic declarations (for equality, ...)
+* Many-sorted grammars
+* Sound definition rules for LK
+
+## Version 2.2 (released on 2016-07-09)
 
 * New resolution calculus with Avatar splitting
 * Vampire proof import with splitting
 * More reliable leanCoP interface
 * Metis interface
+* TPTP problem parser
 * Removal of obsolete or unmaintained code:
   * Schemata
   * Old LK implementation

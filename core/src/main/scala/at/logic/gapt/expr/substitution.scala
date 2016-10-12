@@ -2,7 +2,7 @@ package at.logic.gapt.expr
 
 import scala.collection.GenTraversable
 
-/*
+/**
  * A substitution is a mapping from variables to lambda-expressions which differs from the identity
  * on finitely many variables. Therefore:
  *  1) each variable is mapped to only one lambda expression
@@ -35,10 +35,6 @@ class Substitution( val map: Map[Var, LambdaExpression] ) {
   def domain: Set[Var] = map.keySet
   def range: Set[Var] = map.values.toSet[LambdaExpression].flatMap( freeVariables( _ ) )
 
-  def ::( sub: ( Var, LambdaExpression ) ) = new Substitution( map + sub )
-
-  def ::( otherSubstitution: Substitution ) = new Substitution( map ++ otherSubstitution.map )
-
   override def hashCode = map.hashCode
 
   override def equals( a: Any ) = a match {
@@ -65,7 +61,7 @@ class Substitution( val map: Map[Var, LambdaExpression] ) {
   //REMARK: this does not imply the substitution is injective
   def isRenaming = map.forall( p => p._2.isInstanceOf[Var] )
 
-  def isInjectiveRenaming = domain.forall { v => v.isInstanceOf[Var] && domain.forall { u => u == v || map( u ) != map( v ) } }
+  def isInjectiveRenaming = domain.forall { v => map( v ).isInstanceOf[Var] && domain.forall { u => u == v || map( u ) != map( v ) } }
 
   override def toString() = map.map( x => x._1 + " -> " + x._2 ).mkString( "Substitution(", ",", ")" )
 

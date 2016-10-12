@@ -8,7 +8,8 @@ import at.logic.gapt.formats.tip.TipSmtParser
 import at.logic.gapt.proofs.{ HOLSequent, Sequent }
 import at.logic.gapt.provers.viper.SimpleInductionProof._
 import at.logic.gapt.provers.viper._
-import org.apache.log4j.{ Level, Logger }
+import at.logic.gapt.utils.Logger
+import better.files._
 
 object prototype extends Script {
 
@@ -85,7 +86,7 @@ object prototype extends Script {
   //
   // interesting failures:
   //   prod/prop_16.smt2
-  lazy val tipES = reduceHolToFol( TipSmtParser.parseFile( "/home/gebner/tip-benchs/benchmarks/isaplanner/prop_10.smt2" ).toSequent ) match {
+  lazy val tipES = reduceHolToFol( TipSmtParser.parse( file"/home/gebner/tip-benchs/benchmarks/isaplanner/prop_10.smt2" ).toSequent ) match {
     case Sequent( theory, Seq( All( v, concl ) ) ) =>
       val repl = Map[LambdaExpression, LambdaExpression]( FOLConst( "Z" ) -> FOLConst( "0" ), FOLFunctionConst( "S", 1 ) -> FOLFunctionConst( "s", 1 ) )
       TermReplacement( reduceHolToFol( Sequent( theory, Seq( Substitution( v -> alpha )( concl ) ) ) ), repl )
@@ -193,7 +194,7 @@ object prototype extends Script {
 
   println( s"Proving $endSequent" )
 
-  Logger.getLogger( classOf[SipProver].getName ).setLevel( Level.DEBUG )
+  Logger.makeVerbose( classOf[SipProver] )
 
   val sipProver = new SipProver( solutionFinder = new HeuristicSolutionFinder( 1 ), instances = 0 until 3 )
 

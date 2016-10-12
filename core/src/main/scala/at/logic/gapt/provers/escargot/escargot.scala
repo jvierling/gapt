@@ -3,10 +3,12 @@ package at.logic.gapt.provers.escargot
 import at.logic.gapt.expr._
 import at.logic.gapt.formats.tptp.{ TptpParser, resolutionToTptp, tptpProblemToResolution }
 import at.logic.gapt.proofs._
+import at.logic.gapt.proofs.lk.LKProof
 import at.logic.gapt.proofs.resolution._
-import at.logic.gapt.provers.ResolutionProver
+import at.logic.gapt.provers.{ ResolutionProver, groundFreeVariables }
 import at.logic.gapt.provers.escargot.impl.{ EscargotState, StandardInferences }
-import at.logic.gapt.utils.logging.Logger
+import at.logic.gapt.utils.Logger
+import better.files._
 
 object Escargot extends Escargot( splitting = true, equality = true, propositional = false ) {
   def lpoHeuristic( cnf: Traversable[HOLSequent] ): LPO = {
@@ -62,20 +64,32 @@ object Escargot extends Escargot( splitting = true, equality = true, proposition
     }
   }
 
-  def main( args: Array[String] ): Unit =
-    args.toSeq match {
-      case Seq( tptpInputFile ) =>
-        org.apache.log4j.Logger.getLogger( classOf[EscargotState] ).setLevel( org.apache.log4j.Level.DEBUG )
+  def makeVerbose() = Logger.makeVerbose( classOf[EscargotState] )
 
-        val tptp = TptpParser.loadFile( tptpInputFile )
-        getResolutionProof( structuralCNF.onProofs( tptpProblemToResolution( tptp ) ) ) match {
-          case Some( proof ) =>
-            println( "SZS status Unsatisfiable" )
-            println( resolutionToTptp( proof ).mkString )
-          case None =>
-            println( "SZS status Satisfiable" )
-        }
+  def main( args: Array[String] ): Unit = {
+    Logger.useTptpComments()
+
+    val tptpInputFile = args.toSeq match {
+      case Seq() =>
+        println( "Usage: escargot [-v] tptp-problem.p" )
+        sys.exit( 1 )
+      case Seq( "-v", file ) =>
+        makeVerbose()
+        file
+      case Seq( file ) => file
     }
+
+    val tptp = TptpParser.load( tptpInputFile.toFile )
+    getResolutionProof( structuralCNF.onProofs( tptpProblemToResolution( tptp ) ) ) match {
+      case Some( proof ) =>
+        println( "% SZS status Unsatisfiable" )
+        println( "% SZS output start CNFRefutation" )
+        print( resolutionToTptp( proof ) )
+        println( "% SZS output end CNFRefutation" )
+      case None =>
+        println( "% SZS status Satisfiable" )
+    }
+  }
 }
 object NonSplittingEscargot extends Escargot( splitting = false, equality = true, propositional = false )
 
@@ -91,4 +105,12 @@ class Escargot( splitting: Boolean, equality: Boolean, propositional: Boolean ) 
     state.newlyDerived ++= cnf.map { state.InputCls }
     state.loop()
   }
+
+  def getAtomicLKProof( sequent: HOLClause ): Option[LKProof] =
+    groundFreeVariables.wrap( sequent ) { sequent =>
+      getResolutionProof( sequent.map( _.asInstanceOf[HOLAtom] ).
+        map( Sequent() :+ _, _ +: Sequent() ).elements ) map { resolution =>
+        UnitResolutionToLKProof( resolution )
+      }
+    }
 }

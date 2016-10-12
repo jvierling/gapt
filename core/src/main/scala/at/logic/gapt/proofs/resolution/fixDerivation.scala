@@ -5,7 +5,7 @@ import at.logic.gapt.expr.hol.CNFn
 import at.logic.gapt.proofs._
 import at.logic.gapt.provers.escargot.{ Escargot, NonSplittingEscargot }
 import at.logic.gapt.provers.{ ResolutionProver, groundFreeVariables }
-import at.logic.gapt.utils.logging.Logger
+import at.logic.gapt.utils.Logger
 
 import scala.collection.immutable.HashMap
 
@@ -39,13 +39,13 @@ object fixDerivation extends Logger {
       var p = Factor( Subst( Input( from ), s ) )
 
       val needToFlip = for ( ( a, i ) <- p.conclusion.zipWithIndex ) yield a match {
-        case _ if to.contains( a, i isSuc ) => false
-        case Eq( t, s ) if to.contains( Eq( s, t ), i isSuc ) => true
+        case _ if to.contains( a, i.polarity ) => false
+        case Eq( t, s ) if to.contains( Eq( s, t ), i.polarity ) => true
         case _ => return None
       }
 
       for ( ( ( a, true ), i ) <- p.conclusion zip needToFlip zipWithIndex )
-        p = Flip( p, p.conclusion.indexOfPol( a, i isSuc ) )
+        p = Flip( p, p.conclusion.indexOfPol( a, i.polarity ) )
 
       p = Factor( p )
       p
@@ -64,6 +64,10 @@ object fixDerivation extends Logger {
   private def findFirstSome[A, B]( seq: Seq[A] )( f: A => Option[B] ): Option[B] =
     seq.view.flatMap( f( _ ) ).headOption
 
+  def apply( p: ResolutionProof, cs: Iterable[ResolutionProof] ): ResolutionProof = {
+    val csMap = cs.view.map( c => c.conclusion -> c ).toMap
+    mapInputClauses( apply( p, csMap.keySet.map( _.map( _.asInstanceOf[HOLAtom] ) ) ) )( csMap )
+  }
   def apply( p: ResolutionProof, cs: Traversable[HOLClause] ): ResolutionProof =
     apply( p, cs.toSeq )
   def apply( p: ResolutionProof, cs: Seq[HOLClause] ): ResolutionProof =
@@ -91,18 +95,13 @@ object tautologifyInitialUnitClauses {
    * resulting resolution proof has the same structure as the original proof.
    */
   def apply( p: ResolutionProof, shouldTautologify: HOLSequent => Boolean ): ResolutionProof =
-    mapInputClauses.withOccConn( p, factorEverything = true ) {
+    mapInputClauses( p ) {
       case clause @ Sequent( Seq(), Seq( a ) ) if shouldTautologify( clause ) =>
-        Taut( a ) -> OccConnector( a +: Clause() :+ a, clause, Seq() +: Sequent() :+ Seq( Suc( 0 ) ) )
+        Taut( a )
       case clause @ Sequent( Seq( a ), Seq() ) if shouldTautologify( clause ) =>
-        Taut( a ) -> OccConnector( a +: Clause() :+ a, clause, Seq( Ant( 0 ) ) +: Sequent() :+ Seq() )
-      case clause => Input( clause ) -> OccConnector( clause )
+        Taut( a )
+      case clause => Input( clause )
     }
-}
-
-object containedVariables {
-  def apply( p: ResolutionProof ): Set[Var] =
-    p.subProofs.flatMap { subProof => freeVariables( subProof.conclusion ) }
 }
 
 object findDerivationViaResolution {
@@ -133,7 +132,7 @@ object findDerivationViaResolution {
     prover.getResolutionProof( bs ++ negatedClausesA ) map { refutation =>
       val tautologified = tautologifyInitialUnitClauses( eliminateSplitting( refutation ), negatedClausesA.toSet )
 
-      val toUnusedVars = rename( grounding.map( _._1 ), containedVariables( tautologified ) )
+      val toUnusedVars = rename( grounding.map( _._1 ), containedNames( tautologified ) )
       val nonOverbindingUnground = grounding.map { case ( v, c ) => c -> toUnusedVars( v ) }
       val derivation = TermReplacement( tautologified, nonOverbindingUnground.toMap[LambdaExpression, LambdaExpression] )
       val derivationInOrigVars = Subst( derivation, Substitution( toUnusedVars.map( _.swap ) ) )

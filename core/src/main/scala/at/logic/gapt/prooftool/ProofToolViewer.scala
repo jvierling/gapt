@@ -1,58 +1,31 @@
 package at.logic.gapt.prooftool
 
-import at.logic.gapt.proofs.expansion._
-import at.logic.gapt.proofs.lk._
-import at.logic.gapt.proofs.lksk.LKskProof
-import at.logic.gapt.proofs.{ HOLSequent, SequentProof }
+import java.awt.Color
+import java.awt.Font._
+import java.awt.image.BufferedImage
+import java.io.File
+import javax.imageio.ImageIO
+import javax.swing.filechooser.FileFilter
+import javax.swing.{JComponent, JLayer, WindowConstants}
+
 import com.itextpdf.awt.PdfGraphics2D
 
+import scala.swing.Dialog.Message
+import scala.swing.Swing.EmptyIcon
 import scala.swing._
-import BorderPanel._
 import scala.swing.event.Key
-import swing.Dialog.Message
-import swing.Swing.EmptyIcon
-import java.io.{ File, BufferedWriter => JBufferedWriter, FileWriter => JFileWriter }
-import javax.swing.filechooser.FileFilter
-import javax.swing.{ JComponent, JLayer, WindowConstants }
-
-import at.logic.gapt.formats.latex.ProofToLatexExporter
-import java.awt.image.BufferedImage
-import javax.imageio.ImageIO
-import java.awt.Color
-
-import at.logic.gapt.formats.llk.ExtendedProofDatabase
-import at.logic.gapt.proofs.ceres.Struct
-
-import scalaz.\/-
 
 object prooftool {
+
   /**
    * Displays various objects in prooftool. Creates an instance of the appropriate viewer.
+   *
+   * This is implemented via a type class. For instances, see the prooftool package object.
    *
    * @param obj The object to be displayed.
    * @param name The title to be displayed.
    */
-  def apply( obj: AnyRef, name: String = "prooftool" ): Unit =
-    obj match {
-      case Some( wrapped: AnyRef ) => apply( wrapped, name )
-      case \/-( wrapped: AnyRef )  => apply( wrapped, name )
-      case p: LKProof              => new LKProofViewer( name, p ).showFrame()
-      case p: LKskProof            => new LKskProofViewer( name, p ).showFrame()
-      case p: SequentProof[f, t] =>
-        def renderer( x: f ): String = "" + x //TODO: have a better default
-        new SequentProofViewer( name, p, renderer ).showFrame()
-      case ep: ExpansionProofWithCut => apply( ep.expansionWithCutAxiom, name )
-      case ep: ExpansionProof        => new ExpansionSequentViewer( name, ep.expansionSequent ).showFrame()
-      case struct: Struct[d]         => new StructViewer[d]( name, struct ).showFrame()
-      case list: List[HOLSequent]    => new ListViewer( name, list ).showFrame()
-      case seq: HOLSequent           => new ListViewer( name, List( seq ) ).showFrame()
-      case set: Set[HOLSequent]      => new ListViewer( name, set.toList ).showFrame()
-      case db: ExtendedProofDatabase =>
-        for ( ( pName, p ) <- db.proofs )
-          prooftool( p, pName )
-
-      case _ => throw new IllegalArgumentException( s"Objects of type ${obj.getClass} can't be displayed." )
-    }
+  def apply[T: ProoftoolViewable]( obj: T, name: String = "prooftool" ): Unit = ProoftoolViewable[T].display( obj, name )
 }
 
 /**
@@ -64,13 +37,28 @@ object prooftool {
  */
 abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends Reactor {
   type MainComponentType <: Component // The type of the mainComponent object (e.g., DrawSequentProof in the case of LK proofs).
-  private val nLine = sys.props( "line.separator" )
+  protected val nLine = sys.props( "line.separator" )
   val dnLine = nLine + nLine
   var DEBUG = false
+
+  // Font
   val defaultFontSize = 12
-  var currentFontSize = defaultFontSize
+  private var currentFontSize_ = defaultFontSize
+  def currentFontSize = currentFontSize_
+  def currentFontSize_=( sz: Int ) = {
+    currentFontSize_ = sz
+    font = new Font( SANS_SERIF, PLAIN, sz )
+  }
+  private var font_ = new Font( SANS_SERIF, PLAIN, currentFontSize )
+  def font = font_
+  def font_=( ft: Font ) = {
+    font_ = ft
+    publisher.publish( FontChanged )
+    mainComponent.revalidate()
+  }
   var launcher_history = List[( String, AnyRef, Int )]()
   val publisher = new ProofToolPublisher
+
   val mBar = new MenuBar {
     focusable = true
 
@@ -83,14 +71,7 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
       mnemonic = Key.V
       contents ++= viewMenuContents
     }
-
-    contents += new Menu( "Debug" ) {
-      mnemonic = Key.D
-      contents ++= debugMenuContents
-    }
   }
-
-  val scrollPane = new PTScrollPane
 
   def showFrame() {
     top.preferredSize = new Dimension( 700, 500 )
@@ -103,23 +84,38 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
   lazy val top = new Frame {
     title = "ProofTool"
     menuBar = mBar
-    contents = new BorderPanel {
-      // layout(toolbar) = Position.North
-      layout( scrollPane ) = Position.Center
-      // layout(new ProgressBar { indeterminate = true }) = Position.South
-    }
+    contents = new BorderPanel
     peer setDefaultCloseOperation WindowConstants.DISPOSE_ON_CLOSE
+    background = Color.WHITE
   }
 
-  val mainComponent = createMainComponent( defaultFontSize )
-  val contentPanel = new PTContentPanel( this, name, mainComponent, defaultFontSize )
-  val layerUI = new ZoomUI
-  val jlayer = new JLayer[JComponent]( contentPanel.peer, layerUI )
-  scrollPane.peer.setViewportView( jlayer )
+  val mainComponent = createMainComponent
+
+  protected var contentPanel_ = new PTContentPanel( this, name, mainComponent )
+  def contentPanel = contentPanel_
+  def contentPanel_=( p: PTContentPanel ) = {
+    contentPanel_ = p
+    top.contents = mainPanel
+  }
+
+  def mainPanel: Component = contentPanel
+
+  top.contents = mainPanel
 
   // Function that creates the main component from the content object, e.g., put an LKProof in a DrawSequentProof object.
   // Subclasses need to implement this!
-  def createMainComponent( fSize: Int ): MainComponentType
+  def createMainComponent: MainComponentType
+
+  /**
+   * Resizes the content to a new font size.
+   *
+   * @param fSize The new font size.
+   */
+  def resizeContent( fSize: Int ): Unit = {
+    mainPanel.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
+    currentFontSize = fSize
+    mainPanel.cursor = java.awt.Cursor.getDefaultCursor
+  }
 
   /**
    * Opens a proof db and displays all its contents.
@@ -128,35 +124,13 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
     chooser.fileFilter = chooser.acceptAllFileFilter
     chooser.showOpenDialog( mBar ) match {
       case FileChooser.Result.Approve =>
-        scrollPane.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
+        mainPanel.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
         val parser = new FileParser( this )
         parser.parseFile( chooser.selectedFile.getPath )
         for ( ( name, p ) <- parser.getProofs ) prooftool( p, name )
         for ( ( name, p ) <- parser.getResolutionProofs ) prooftool( p, name )
 
-        scrollPane.cursor = java.awt.Cursor.getDefaultCursor
-        publisher.publish( EnableMenus )
-      case _ =>
-    }
-  }
-
-  def fSaveAll() {
-    chooser.fileFilter = chooser.acceptAllFileFilter
-    chooser.showSaveDialog( mBar ) match {
-      case FileChooser.Result.Approve =>
-        val db = new FileParser( this )
-        scrollPane.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
-        val result = chooser.selectedFile.getPath
-        try {
-          if ( result.endsWith( ".tex" ) || chooser.fileFilter.getDescription == ".tex" ) {
-            val filename = if ( result.endsWith( ".tex" ) ) result else result + ".tex"
-            val file = new JBufferedWriter( new JFileWriter( filename ) )
-            file.write( ProofToLatexExporter( db.getProofs.map( pair => ( pair._1, pair._2.asInstanceOf[LKProof] ) ) ) )
-            file.close()
-          } else infoMessage( "Proofs cannot be saved in this format." )
-        } catch {
-          case e: Throwable => errorMessage( "Cannot save the file! " + dnLine + getExceptionString( e ) )
-        } finally { scrollPane.cursor = java.awt.Cursor.getDefaultCursor }
+        mainPanel.cursor = java.awt.Cursor.getDefaultCursor
       case _ =>
     }
   }
@@ -170,10 +144,11 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
     chooser.fileFilter = chooser.peer.getChoosableFileFilters.find( f => f.getDescription == ".pdf" ).get
     chooser.showSaveDialog( mBar ) match {
       case FileChooser.Result.Approve => try {
-        scrollPane.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
+        mainPanel.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
         import java.io.FileOutputStream
-        import com.itextpdf.text.{ Document, Rectangle => PdfRectangle }
+
         import com.itextpdf.text.pdf.PdfWriter
+        import com.itextpdf.text.{Document, Rectangle => PdfRectangle}
 
         val width = component.size.width
         val height = component.size.height
@@ -191,7 +166,7 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
         document.close()
       } catch {
         case e: Throwable => errorMessage( "Can't export to pdf! " + dnLine + getExceptionString( e ) )
-      } finally { scrollPane.cursor = java.awt.Cursor.getDefaultCursor }
+      } finally { mainPanel.cursor = java.awt.Cursor.getDefaultCursor }
       case _ =>
     }
   }
@@ -205,7 +180,7 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
     chooser.fileFilter = chooser.peer.getChoosableFileFilters.find( f => f.getDescription == ".png" ).get
     chooser.showSaveDialog( mBar ) match {
       case FileChooser.Result.Approve => try {
-        scrollPane.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
+        mainPanel.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
 
         val width = component.size.width
         val height = component.size.height
@@ -219,21 +194,36 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
         ImageIO.write( img, "png", new File( path ) )
       } catch {
         case e: Throwable => errorMessage( "Can't export to png! " + dnLine + getExceptionString( e ) )
-      } finally { scrollPane.cursor = java.awt.Cursor.getDefaultCursor }
+      } finally { mainPanel.cursor = java.awt.Cursor.getDefaultCursor }
       case _ =>
     }
   }
 
-  def zoomAbsolute( factor: Double ) = {
-    layerUI.zoom = math.max( 0.1, math.min( factor, 8 ) )
-    println( s"New zoom ${layerUI.zoom}" )
-    jlayer.doLayout()
-    scrollPane.peer.setViewportView( jlayer )
+  /**
+   * Zooms in by multiplying font size by 3/2.
+   */
+  def increaseFontSize() {
+    currentFontSize * 3 / 2 match {
+      case j: Int if j > 72 =>
+      case j: Int =>
+        resizeContent( j )
+    }
   }
-  def zoomRelative( factorMultiplier: Double ) =
-    zoomAbsolute( layerUI.zoom * factorMultiplier )
-  def zoomIn() = zoomRelative( 3.0 / 2.0 )
-  def zoomOut() = zoomRelative( 2.0 / 3.0 )
+
+  /**
+   * Zooms out by multiplying font size by 2/3.
+   */
+  def decreaseFontSize() {
+    currentFontSize / 3 * 2 match {
+      case j: Int if j < 1 =>
+      case j: Int =>
+        resizeContent( j )
+    }
+  }
+
+  def inputMessage( message: String, values: Seq[String] ) =
+    Dialog.showInput[String]( mainPanel, message, "ProofTool Input", Dialog.Message.Plain, EmptyIcon, values,
+      if ( values.isEmpty ) "" else values.head )
 
   /**
    * Displays an info message.
@@ -241,7 +231,7 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
    * @param info The text of the message.
    */
   def infoMessage( info: String ) {
-    Dialog.showMessage( scrollPane, info, "ProofTool Information" )
+    Dialog.showMessage( mainPanel, info, "ProofTool Information" )
   }
 
   /**
@@ -250,7 +240,7 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
    * @param warning The text of the message.
    */
   def warningMessage( warning: String ) {
-    Dialog.showMessage( scrollPane, warning, "ProofTool Warning", Dialog.Message.Warning )
+    Dialog.showMessage( mainPanel, warning, "ProofTool Warning", Dialog.Message.Warning )
   }
 
   /**
@@ -259,7 +249,7 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
    * @param error The text of the message.
    */
   def errorMessage( error: String ) {
-    Dialog.showMessage( scrollPane, error, "ProofTool Error", Dialog.Message.Error )
+    Dialog.showMessage( mainPanel, error, "ProofTool Error", Dialog.Message.Error )
   }
 
   /**
@@ -268,7 +258,7 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
    * @param question The text of the question.
    */
   def questionMessage( question: String ) =
-    Dialog.showConfirmation( scrollPane, question, "ProofTool Question", Dialog.Options.YesNo, Message.Question )
+    Dialog.showConfirmation( mainPanel, question, "ProofTool Question", Dialog.Options.YesNo, Message.Question )
 
   def getExceptionString( e: Throwable ): String = {
     val st = e.toString.replaceAll( ",", "," + nLine ) + nLine
@@ -301,9 +291,9 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
 
   protected def exportToPNGButton = MenuButtons.exportToPNGButton( this )
 
-  protected def zoomInButton = MenuButtons.zoomInButton( this )
+  protected def increaseFontSizeButton = MenuButtons.increaseFontSizeButton( this )
 
-  protected def zoomOutButton = MenuButtons.zoomOutButton( this )
+  protected def decreaseFontSizeButton = MenuButtons.decreaseFontSizeButton( this )
 
   protected def showDebugBordersButton = MenuButtons.ShowDebugBordersButton( this )
 
@@ -317,10 +307,47 @@ abstract class ProofToolViewer[+T]( val name: String, val content: T ) extends R
    *
    * @return The contents of the "View" menu.
    */
-  def viewMenuContents: Seq[Component] = Seq( zoomInButton, zoomOutButton )
+  def viewMenuContents: Seq[Component] = Seq( increaseFontSizeButton, decreaseFontSizeButton )
 
   /**
    * @return The contents of the "Debug" menu.
    */
   def debugMenuContents: Seq[Component] = Seq( showDebugBordersButton )
+}
+
+/**
+ * A Prooftool window where the main component is contained in a ScrollPane.
+ * @param name The name to be displayed at the top.
+ * @param content The object to be displayed.
+ * @tparam T The type of content.
+ */
+abstract class ScrollableProofToolViewer[+T]( name: String, content: T ) extends ProofToolViewer( name, content ) {
+
+  lazy val scrollPane = new PTScrollPane
+  scrollPane.contentPanel = contentPanel
+
+  override def contentPanel_=( p: PTContentPanel ) = {
+    contentPanel_ = p
+    scrollPane.contentPanel = p
+  }
+
+  val layerUI = new ZoomUI
+  val jlayer = new JLayer[JComponent]( contentPanel.peer, layerUI )
+  scrollPane.peer.setViewportView( jlayer )
+
+  def zoomAbsolute( factor: Double ) = {
+    layerUI.zoom = math.max( 0.1, math.min( factor, 8 ) )
+    println( s"New zoom ${layerUI.zoom}" )
+    jlayer.doLayout()
+    scrollPane.peer.setViewportView( jlayer )
+  }
+
+  def zoomRelative( factorMultiplier: Double ) =
+    zoomAbsolute( layerUI.zoom * factorMultiplier )
+  def zoomIn() = zoomRelative( 3.0 / 2.0 )
+  def zoomOut() = zoomRelative( 2.0 / 3.0 )
+
+  override def viewMenuContents = super.viewMenuContents ++ Seq( new Separator, MenuButtons.zoomInButton( this ), MenuButtons.zoomOutButton( this ) )
+
+  override def mainPanel = scrollPane
 }

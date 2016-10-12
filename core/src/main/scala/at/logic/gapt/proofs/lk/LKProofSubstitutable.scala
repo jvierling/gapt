@@ -125,18 +125,18 @@ class LKProofSubstitutable( preserveEigenvariables: Boolean ) extends Substituta
       val subProofNew = applySubstitution( substitution, subProof )
       EqualityRightRule( subProofNew, eq, aux, substitution( con ).asInstanceOf[Abs] )
 
-    case InductionRule( cases, main ) =>
+    case InductionRule( cases, main, term ) =>
       InductionRule( cases map {
         indCase( substitution, _ )
-      }, substitution( main ) )
+      }, substitution( main ).asInstanceOf[Abs], substitution( term ) )
 
-    case DefinitionLeftRule( subProof, aux, main ) =>
+    case DefinitionLeftRule( subProof, aux, definition, context ) =>
       val subProofNew = applySubstitution( substitution, subProof )
-      DefinitionLeftRule( subProofNew, aux, betaNormalize( substitution( main ) ) )
+      DefinitionLeftRule( subProofNew, aux, definition, betaNormalize( substitution( context ) ).asInstanceOf[Abs] )
 
-    case DefinitionRightRule( subProof, aux, main ) =>
+    case DefinitionRightRule( subProof, aux, definition, context ) =>
       val subProofNew = applySubstitution( substitution, subProof )
-      DefinitionRightRule( subProofNew, aux, betaNormalize( substitution( main ) ) )
+      DefinitionRightRule( subProofNew, aux, definition, betaNormalize( substitution( context ) ).asInstanceOf[Abs] )
 
     case _ => throw new IllegalArgumentException( s"This rule is not handled at this time." )
   }
@@ -189,63 +189,75 @@ class LKProofReplacer( repl: PartialFunction[LambdaExpression, LambdaExpression]
     ( proofNew, ( proofNew.getOccConnector * subConnector * proof.getOccConnector.inv ) + ( proofNew.mainIndices( 0 ), proof.mainIndices( 0 ) ) )
   }
 
-  override protected def visitForallLeft( proof: ForallLeftRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) = {
-    val ( subProofNew, subConnector ) = recurse( proof.subProof, () )
-    val proofNew = ForallLeftRule( subProofNew, TermReplacement( proof.mainFormula, repl ), TermReplacement( proof.term, repl ) )
-    ( proofNew, proofNew.getOccConnector * subConnector * proof.getOccConnector.inv )
-  }
+  override protected def visitForallLeft( proof: ForallLeftRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) =
+    one2one( proof, otherArg ) {
+      case Seq( ( subProofNew, subConnector ) ) =>
+        ForallLeftRule( subProofNew, subConnector.child( proof.aux ), TermReplacement( proof.mainFormula, repl ), TermReplacement( proof.term, repl ) )
+    }
 
-  override protected def visitForallRight( proof: ForallRightRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) = {
-    val ( subProofNew, subConnector ) = recurse( proof.subProof, () )
-    val proofNew = ForallRightRule( subProofNew, TermReplacement( proof.mainFormula, repl ), TermReplacement( proof.eigenVariable, repl ).asInstanceOf[Var] )
-    ( proofNew, proofNew.getOccConnector * subConnector * proof.getOccConnector.inv )
-  }
+  override protected def visitForallRight( proof: ForallRightRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) =
+    one2one( proof, otherArg ) {
+      case Seq( ( subProofNew, subConnector ) ) =>
+        ForallRightRule( subProofNew, subConnector.child( proof.aux ), TermReplacement( proof.mainFormula, repl ),
+          TermReplacement( proof.eigenVariable, repl ).asInstanceOf[Var] )
+    }
 
-  override protected def visitForallSkRight( proof: ForallSkRightRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) = {
-    val ( subProofNew, subConnector ) = recurse( proof.subProof, () )
-    val proofNew = ForallSkRightRule( subProofNew, TermReplacement( proof.skolemTerm, repl ), TermReplacement( proof.skolemDef, repl ) )
-    ( proofNew, proofNew.getOccConnector * subConnector * proof.getOccConnector.inv )
-  }
+  override protected def visitForallSkRight( proof: ForallSkRightRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) =
+    one2one( proof, otherArg ) {
+      case Seq( ( subProofNew, subConnector ) ) =>
+        ForallSkRightRule( subProofNew, subConnector.child( proof.aux ),
+          TermReplacement( proof.mainFormula, repl ),
+          TermReplacement( proof.skolemTerm, repl ),
+          TermReplacement( proof.skolemDef, repl ) )
+    }
 
-  override protected def visitExistsRight( proof: ExistsRightRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) = {
-    val ( subProofNew, subConnector ) = recurse( proof.subProof, () )
-    val proofNew = ExistsRightRule( subProofNew, TermReplacement( proof.mainFormula, repl ), TermReplacement( proof.term, repl ) )
-    ( proofNew, proofNew.getOccConnector * subConnector * proof.getOccConnector.inv )
-  }
+  override protected def visitExistsRight( proof: ExistsRightRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) =
+    one2one( proof, otherArg ) {
+      case Seq( ( subProofNew, subConnector ) ) =>
+        ExistsRightRule( subProofNew, subConnector.child( proof.aux ), TermReplacement( proof.mainFormula, repl ), TermReplacement( proof.term, repl ) )
+    }
 
-  override protected def visitExistsLeft( proof: ExistsLeftRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) = {
-    val ( subProofNew, subConnector ) = recurse( proof.subProof, () )
-    val proofNew = ExistsLeftRule( subProofNew, TermReplacement( proof.mainFormula, repl ), TermReplacement( proof.eigenVariable, repl ).asInstanceOf[Var] )
-    ( proofNew, proofNew.getOccConnector * subConnector * proof.getOccConnector.inv )
-  }
+  override protected def visitExistsLeft( proof: ExistsLeftRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) =
+    one2one( proof, otherArg ) {
+      case Seq( ( subProofNew, subConnector ) ) =>
+        ExistsLeftRule( subProofNew, subConnector.child( proof.aux ), TermReplacement( proof.mainFormula, repl ),
+          TermReplacement( proof.eigenVariable, repl ).asInstanceOf[Var] )
+    }
 
-  override protected def visitExistsSkLeft( proof: ExistsSkLeftRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) = {
-    val ( subProofNew, subConnector ) = recurse( proof.subProof, () )
-    val proofNew = ExistsSkLeftRule( subProofNew, TermReplacement( proof.skolemTerm, repl ), TermReplacement( proof.skolemDef, repl ) )
-    ( proofNew, proofNew.getOccConnector * subConnector * proof.getOccConnector.inv )
-  }
+  override protected def visitExistsSkLeft( proof: ExistsSkLeftRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) =
+    one2one( proof, otherArg ) {
+      case Seq( ( subProofNew, subConnector ) ) =>
+        ExistsSkLeftRule( subProofNew, subConnector.child( proof.aux ),
+          TermReplacement( proof.mainFormula, repl ),
+          TermReplacement( proof.skolemTerm, repl ),
+          TermReplacement( proof.skolemDef, repl ) )
+    }
 
-  override protected def visitEqualityLeft( proof: EqualityLeftRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) = {
-    val ( subProofNew, subConnector ) = recurse( proof.subProof, () )
-    val proofNew = EqualityLeftRule( subProofNew, subConnector.child( proof.eq ), subConnector.child( proof.aux ), TermReplacement( proof.replacementContext, repl ).asInstanceOf[Abs] )
-    ( proofNew, proofNew.getOccConnector * subConnector * proof.getOccConnector.inv )
-  }
+  override protected def visitEqualityLeft( proof: EqualityLeftRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) =
+    one2one( proof, otherArg ) {
+      case Seq( ( subProofNew, subConnector ) ) =>
+        EqualityLeftRule( subProofNew, subConnector.child( proof.eq ), subConnector.child( proof.aux ),
+          TermReplacement( proof.replacementContext, repl ).asInstanceOf[Abs] )
+    }
 
-  override protected def visitEqualityRight( proof: EqualityRightRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) = {
-    val ( subProofNew, subConnector ) = recurse( proof.subProof, () )
-    val proofNew = EqualityRightRule( subProofNew, subConnector.child( proof.eq ), subConnector.child( proof.aux ), TermReplacement( proof.replacementContext, repl ).asInstanceOf[Abs] )
-    ( proofNew, proofNew.getOccConnector * subConnector * proof.getOccConnector.inv )
-  }
+  override protected def visitEqualityRight( proof: EqualityRightRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) =
+    one2one( proof, otherArg ) {
+      case Seq( ( subProofNew, subConnector ) ) =>
+        EqualityRightRule( subProofNew, subConnector.child( proof.eq ), subConnector.child( proof.aux ),
+          TermReplacement( proof.replacementContext, repl ).asInstanceOf[Abs] )
+    }
 
-  override protected def visitDefinitionLeft( proof: DefinitionLeftRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) = {
-    val ( subProofNew, subConnector ) = recurse( proof.subProof, () )
-    val proofNew = DefinitionLeftRule( subProofNew, subConnector.child( proof.aux ), TermReplacement( proof.main, repl ) )
-    ( proofNew, proofNew.getOccConnector * subConnector * proof.getOccConnector.inv )
-  }
+  override protected def visitDefinitionLeft( proof: DefinitionLeftRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) =
+    one2one( proof, otherArg ) {
+      case Seq( ( subProofNew, subConnector ) ) =>
+        val definitionNew = TermReplacement( proof.definition, repl )
+        DefinitionLeftRule( subProofNew, subConnector.child( proof.aux ), definitionNew, TermReplacement( proof.replacementContext, repl ).asInstanceOf[Abs] )
+    }
 
-  override protected def visitDefinitionRight( proof: DefinitionRightRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) = {
-    val ( subProofNew, subConnector ) = recurse( proof.subProof, () )
-    val proofNew = DefinitionRightRule( subProofNew, subConnector.child( proof.aux ), TermReplacement( proof.main, repl ) )
-    ( proofNew, proofNew.getOccConnector * subConnector * proof.getOccConnector.inv )
-  }
+  override protected def visitDefinitionRight( proof: DefinitionRightRule, otherArg: Unit ): ( LKProof, OccConnector[HOLFormula] ) =
+    one2one( proof, otherArg ) {
+      case Seq( ( subProofNew, subConnector ) ) =>
+        val definitionNew = TermReplacement( proof.definition, repl )
+        DefinitionRightRule( subProofNew, subConnector.child( proof.aux ), definitionNew, TermReplacement( proof.replacementContext, repl ).asInstanceOf[Abs] )
+    }
 }

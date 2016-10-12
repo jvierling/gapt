@@ -1,6 +1,7 @@
 package at.logic.gapt.examples.prime
 
 import at.logic.gapt.expr._
+import at.logic.gapt.expr.hol.CNFp
 import at.logic.gapt.proofs.gaptic._
 import at.logic.gapt.proofs.lk.LKProof
 import at.logic.gapt.proofs._
@@ -18,7 +19,7 @@ trait PrimeDefinitions extends TacticsProof {
   ctx += Const( "*", Ti -> ( Ti -> Ti ) )
   ctx += Const( "<", Ti -> ( Ti -> To ) )
 
-  ctx += SubsumptionTheory(
+  Seq(
     hof" ∀x ∀y (x + 1) * y + x + 1 = (x + 1) * (y + 1)",
     hof" ∀x ∀y ∀z ∀u ∀v (x = y + z * (u * v ) -> x = y + z * u  * v)",
     hof" ∀x ∀y ∀z ∀u ∀v (x = y + z * (u * v ) -> x = y + z * v  * u)",
@@ -38,7 +39,7 @@ trait PrimeDefinitions extends TacticsProof {
     hof"∀x ∀y ∀z (1<y ∧ x=0+z*y ⊃ x!=1)",
     hof"∀x ∀y ∀z (y*z=x ⊃ x=0+z*y)",
     hof"∀x ∀y1 ∀y2 ∀z x + y1*z + y2*z = x + (y1+y2)*z"
-  )
+  ).flatMap( CNFp( _ ) ).foreach( ctx += _ )
 
   //Definitions
   ctx += "set_1" -> le" λk λl l = k"
@@ -62,7 +63,7 @@ trait PrimeDefinitions extends TacticsProof {
   val p = for ( i <- 0 to k )
     yield FOLConst( s"p_$i" )
 
-  ctx ++= p
+  for ( c <- p ) ctx += c
 
   def F( k: Int ) = Const( s"F[$k]", To )
   def S( k: Int ) = Const( s"S[$k]", Ti -> To )
@@ -516,7 +517,7 @@ case class prime( k: Int ) extends PrimeDefinitions {
     }
   }
   // Proof of EXT, F[k], PRIME-DIV :- S[k] = comp({1})
-  def psi1: LKProof = Lemma(
+  val psi1: LKProof = Lemma(
     ( "EXT" -> extensionality ) +: ( s"F[$k]" -> F( k ).asInstanceOf[HOLFormula] ) +: ( "Prime-Div" -> hof" 'PRIME-DIV'" ) +: Sequent() :+ "goal" -> hof" ${S( k )} = compN(set_1 1)"
   ) {
       chain( "EXT" )
@@ -529,7 +530,7 @@ case class prime( k: Int ) extends PrimeDefinitions {
       insert( psi1Right )
     }
 
-  def FR: LKProof = Lemma(
+  val FR: LKProof = Lemma(
     ( "Ant" -> F( k ).asInstanceOf[HOLFormula] ) +: Sequent() :+ ( "Suc" -> R( k ).asInstanceOf[HOLFormula] )
   ) {
       unfold( s"R[$k]" ) in "Suc"
@@ -587,7 +588,7 @@ case class prime( k: Int ) extends PrimeDefinitions {
     }
   }
 
-  def FQ: LKProof = Lemma(
+  val FQ: LKProof = Lemma(
     ( "Ant" -> F( k ).asInstanceOf[HOLFormula] ) +: Sequent() :+ ( "Suc" -> Q( k ).asInstanceOf[HOLFormula] )
   ) {
       cut( s"R[$k]", R( k ).asInstanceOf[HOLFormula] )
@@ -595,7 +596,7 @@ case class prime( k: Int ) extends PrimeDefinitions {
       insert( RQ( k ) )
     }
 
-  def pgt0: LKProof = Lemma(
+  val pgt0: LKProof = Lemma(
     ( "Ant" -> fof"PRIME(n)" ) +: Sequent() :+ ( "Suc" -> fof"0 < n" )
   ) {
       cut( "CF", fof" 1 < n" )
@@ -651,7 +652,7 @@ case class prime( k: Int ) extends PrimeDefinitions {
     }
   }
 
-  def psi2: LKProof = Lemma(
+  val psi2: LKProof = Lemma(
     ( "Ant0" -> hof"${F( k )}" ) +: ( "Ant1" -> hof" REM" ) +: ( "EXT" -> extensionality ) +: ( "PRE" -> hof"PRE" ) +: Sequent() :+ ( "Suc" -> hof" C ${S( k )}" )
   ) {
       cut( s"Q[$k]", Q( k ).asInstanceOf[HOLFormula] )
@@ -660,7 +661,7 @@ case class prime( k: Int ) extends PrimeDefinitions {
       insert( psi2Right( k ) )
     }
 
-  def proof: LKProof = {
+  val proof: LKProof = {
     val endSequent = ( "EXT" -> extensionality ) +: ( s"F[$k]" -> hof" ${F( k )}" ) +: ( "REM" -> hof" REM" ) +: ( "PRE" -> hof"PRE" ) +: ( "Prime-Div" -> hof" 'PRIME-DIV'" ) +: Sequent()
 
     Lemma( endSequent ) {

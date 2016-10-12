@@ -1,146 +1,171 @@
 package at.logic.gapt.prooftool
 
-import at.logic.gapt.proofs.Sequent
-import at.logic.gapt.expr._
-import org.scilab.forge.jlatexmath.{ TeXConstants, TeXFormula, TeXIcon }
-import java.awt.{ Color, Dimension, Font }
-import java.awt.image.BufferedImage
-
-import swing._
-import event.{ MouseClicked, MouseEntered, MouseExited, WindowDeactivated }
 import java.awt.event.MouseEvent
+import java.awt.{ Color, Font }
 
-import at.logic.gapt.formats.latex.LatexUIRenderer.formulaToLatexString
+import at.logic.gapt.proofs.{ Sequent, SequentIndex }
+import org.scilab.forge.jlatexmath.{ TeXConstants, TeXFormula, TeXIcon }
 
-import collection.mutable
+import scala.collection.mutable
+import scala.swing._
+import scala.swing.event.{ MouseClicked, MouseEntered, MouseExited, WindowDeactivated }
 
 object DrawSequent {
-  def apply[T <: HOLFormula]( main: ProofToolViewer[_], sequent: Sequent[T], visibility: Sequent[Boolean], colors: Sequent[Color], ft: Font ) =
-    new DrawSequent[T]( main, sequent, visibility, colors, ft, x => formulaToLatexString( x, true ) )
+  def apply[T](
+    main:               ProofToolViewer[_],
+    seq:                Sequent[T],
+    mainAuxIndices:     Set[SequentIndex],
+    cutAncestorIndices: Set[SequentIndex],
+    t_renderer:         T => String
+  ): DrawSequent[T] = new DrawSequent[T]( main, seq, mainAuxIndices, cutAncestorIndices, t_renderer )
 
-  /*
-  def apply[T <: LabelledFormula]( main: ProofToolViewer[_], sequent: Sequent[T], visibility: Sequent[Boolean], colors: Sequent[Color], ft: Font ) =
-    new DrawSequent[T]( main, sequent, visibility, colors, ft, x => formulaToLatexString( x._2, true ) )
-    */
-
-  //used by DrawClList to draw FSequents
-  def apply[T]( main: ProofToolViewer[_], seq: Sequent[T], ft: Font, visibility: Sequent[Boolean], colors: Sequent[Color], t_renderer: T => String )( implicit dummyImplicit: DummyImplicit ): DrawSequent[T] = {
-    /*
-    val visibility = if ( str.isEmpty )
-      seq map { _ => true }
-    else
-      seq map { f => t_renderer( f ) contains str }
-    val colors = seq map { _ => Color.white }
-      */
-    new DrawSequent[T]( main, seq, visibility, colors, ft, t_renderer )
-  }
-
-  //used by DrawClList to draw FSequents
-  def apply[T]( main: ProofToolViewer[_], seq: Sequent[T], ft: Font, str: String, t_renderer: T => String )( implicit dummyImplicit: DummyImplicit ): DrawSequent[T] = {
-    val visibility = if ( str.isEmpty )
-      seq map { _ => true }
-    else
-      seq map { f => t_renderer( f ) contains str }
-    val colors = seq map { _ => Color.white }
-    new DrawSequent[T]( main, seq, visibility, colors, ft, t_renderer )
-  }
-
-  //used by DrawProof
-  //  def apply( main: ProofToolViewer[_], seq: OccSequent, ft: Font, vis_occ: Option[Set[FormulaOccurrence]] ): DrawSequent[HOLFormula] = {
-  //    val visibility = vis_occ match {
-  //      case None        => seq map { fo => true }
-  //      case Some( set ) => seq map { fo => set contains fo }
-  //    }
-  //    val colors = seq map { fo => Color.white }
-  //    DrawSequent[HOLFormula]( main, seq.toHOLSequent, visibility, colors, ft )
-  //  }
-
-  def formulaToLabel( main: ProofToolViewer[_], f: HOLFormula, ft: Font ): LatexLabel = LatexLabel( main, ft, formulaToLatexString( f ) )
-
+  def apply[T](
+    main:       ProofToolViewer[_],
+    seq:        Sequent[T],
+    t_renderer: T => String
+  ): DrawSequent[T] = DrawSequent( main, seq, Set(), Set(), t_renderer )
 }
 
+/**
+ * Draws a sequent.
+ * @param main The main Prooftool window that this belongs to.
+ * @param sequent The sequent to be displayed.
+ * @param mainAuxIndices The indices of main and aux formulas. Relevant for hiding contexts.
+ * @param cutAncestorIndices The indices of cut ancestors.
+ * @param sequentElementRenderer The function that turns elements of the sequent into strings.
+ * @tparam T The type of elements of the sequent.
+ */
 class DrawSequent[T](
-    main:                         ProofToolViewer[_],
-    val sequent:                  Sequent[T],
-    val visibility:               Sequent[Boolean],
-    val colors:                   Sequent[Color],
-    val ft:                       Font,
-    val sequent_element_renderer: T => String
-) extends FlowPanel {
+    val main:                   ProofToolViewer[_],
+    val sequent:                Sequent[T],
+    val mainAuxIndices:         Set[SequentIndex],
+    val cutAncestorIndices:     Set[SequentIndex],
+    val sequentElementRenderer: T => String
+) extends BoxPanel( Orientation.Horizontal ) {
   opaque = false // Necessary to draw the proof properly
-  hGap = 0 // no gap between components
+
+  val contextIndices = sequent.indices.toSet diff mainAuxIndices
+
+  val turnstileLabel = new LatexTurnstileLabel( main ) // \u22a2
+
+  val elementLabelSequent = sequent map { f => LatexLabel( main, sequentElementRenderer( f ) ) }
+  val commaLabelSequent = sequent map { _ => new CommaLabel( main ) }
+
+  val contentLabels = elementLabelSequent.antecedent ++ Seq( turnstileLabel ) ++ elementLabelSequent.succedent
+
+  contents ++= removeLast( ( elementLabelSequent.antecedent zip commaLabelSequent.antecedent ) flatMap { case ( x, y ) => Seq( x, y ) } )
+  contents += turnstileLabel
+  contents ++= removeLast( ( elementLabelSequent.succedent zip commaLabelSequent.succedent ) flatMap { case ( x, y ) => Seq( x, y ) } )
+
+  def width() = size.width
 
   listenTo( main.publisher )
 
-  private var first = true
-  for ( ( f, v, c ) <- zip3( sequent, visibility, colors ).antecedent ) {
-    if ( v ) {
-      if ( !first ) contents += LatexLabel( main, ft, "," )
-      else first = false
-      contents += LatexLabel( main, ft, sequent_element_renderer( f ), c )
-    }
-  }
-  contents += LatexLabel( main, ft, "\\vdash" ) // \u22a2
-  first = true
-  for ( ( f, v, c ) <- zip3( sequent, visibility, colors ).succedent ) {
-    if ( v ) {
-      if ( !first ) contents += LatexLabel( main, ft, "," )
-      else first = false
-      contents += LatexLabel( main, ft, sequent_element_renderer( f ), c )
-    }
+  reactions += {
+    case HideSequentContexts =>
+      for ( i <- contextIndices ) {
+        elementLabelSequent( i ).visible = false
+        commaLabelSequent( i ).visible = false
+      }
+
+    case ShowAllFormulas =>
+      for ( i <- contextIndices ) {
+        elementLabelSequent( i ).visible = true
+        commaLabelSequent( i ).visible = true
+      }
+
+    case MarkCutAncestors =>
+      for ( i <- cutAncestorIndices )
+        elementLabelSequent( i ).background = Color.GREEN
+
+    case UnmarkCutAncestors =>
+      for ( i <- cutAncestorIndices )
+        elementLabelSequent( i ).background = Color.WHITE
+
+    case FontChanged =>
   }
 
-  // FIXME: figure out why + 10?  Is it the Label adding an inset?  Is the FlowPanel adding gaps?
-  val width = contents.map( _.asInstanceOf[LatexLabel].myicon.getIconWidth ).sum + 10
-  val height = contents.map( _.asInstanceOf[LatexLabel].myicon.getIconHeight ).max + 10
-  maximumSize = new Dimension( width, height )
-
-  private def zip3[A, B, C]( seq1: Sequent[A], seq2: Sequent[B], seq3: Sequent[C] ): Sequent[( A, B, C )] = ( ( seq1 zip seq2 ) zip seq3 ) map { x => ( x._1._1, x._1._2, x._2 ) }
+  private def removeLast[S]( xs: Seq[S] ): Seq[S] = xs match {
+    case Seq() => Seq()
+    case _     => xs.init
+  }
 }
 
-object LatexLabel {
+/**
+ * Creates Latex icons from strings.
+ */
+object LatexIcon {
   private val cache = mutable.Map[( String, Font ), TeXIcon]()
 
   def clearCache() = this.synchronized( cache.clear() )
 
-  def apply( main: ProofToolViewer[_], font: Font, latexText: String, color: Color = Color.white ): LatexLabel = {
-    val key = ( latexText, font )
-    this.synchronized( {
-      val icon = cache.getOrElseUpdate( key, {
-        val formula = try {
-          new TeXFormula( latexText )
-        } catch {
-          case e: Exception =>
-            throw new Exception( "Could not create formula " + latexText + ": " + e.getMessage, e )
-        }
-        val myicon = formula.createTeXIcon( TeXConstants.STYLE_DISPLAY, font.getSize )
-        val myimage = new BufferedImage( myicon.getIconWidth, myicon.getIconHeight, BufferedImage.TYPE_INT_ARGB )
-        val g2 = myimage.createGraphics()
-        g2.setColor( Color.white )
-        g2.fillRect( 0, 0, myicon.getIconWidth, myicon.getIconHeight )
-        myicon.paintIcon( null, g2, 0, 0 )
-        myicon
-      } )
-      new LatexLabel( main, font, latexText, icon, color )
-    } )
+  /**
+   * Turns latex code into an icon.
+   * @param latexText The Latex code to be rendered as an icon.
+   * @param font The font.
+   * @return An icon displaying latexText.
+   */
+  def apply( latexText: String, font: Font ): TeXIcon = synchronized( cache.getOrElseUpdate(
+    ( latexText, font ),
+    new TeXFormula( latexText ).
+      createTeXIcon( TeXConstants.STYLE_DISPLAY, font.getSize, TeXFormula.SANSSERIF )
+  ) )
+}
+
+object LatexLabel {
+
+  /**
+   * Factory for LatexLabels.
+   * @param main The main window that the label will belong to.
+   * @param latexText The text the label will display.
+   */
+  def apply( main: ProofToolViewer[_], latexText: String ): LatexLabel = {
+    if ( latexText == "," )
+      throw new IllegalArgumentException( "Use `new CommaLabel(main)`" )
+    else if ( latexText == "\\vdash" )
+      new LatexTurnstileLabel( main )
+    else
+      new LatexFormulaLabel( main, latexText )
   }
 }
 
-class LatexLabel( main: ProofToolViewer[_], val ft: Font, val latexText: String, val myicon: TeXIcon, var color: Color )
-    extends Label( "", myicon, Alignment.Center ) {
-  background = color
+/**
+ * A label displaying an icon that is rendered using Latex.
+ * @param main The main Prooftool window that this belongs to.
+ * @param latexText The latex code to be displayed.
+ */
+class LatexLabel( val main: ProofToolViewer[_], val latexText: String ) extends Label( "", null, Alignment.Center ) {
+  background = Color.white
   foreground = Color.black
-  font = ft
   opaque = true
-  yLayoutAlignment = 0.5
-  if ( latexText == "," ) {
-    border = Swing.EmptyBorder( font.getSize / 5, 2, 0, font.getSize / 5 )
-    icon = null
-    text = latexText
-  }
-  if ( latexText == "\\vdash" ) border = Swing.EmptyBorder( font.getSize / 6 )
+  def defaultBorder = Swing.EmptyBorder
+  border = defaultBorder
 
-  listenTo( mouse.moves, mouse.clicks, main.publisher )
+  icon = LatexIcon( latexText, main.font )
+
+  listenTo( main.publisher )
+
+  reactions += {
+    case FontChanged =>
+      icon = LatexIcon( latexText, main.font )
+      border = defaultBorder
+  }
+}
+
+/**
+ * LatexLabel for displaying formulas.
+ *
+ * The difference from plain LatexLabel is that it reacts to the mouse.
+ * @param main The main Prooftool window that this belongs to.
+ * @param latexText The latex code to be displayed.
+ */
+class LatexFormulaLabel(
+  main:      ProofToolViewer[_],
+  latexText: String
+)
+    extends LatexLabel( main, latexText ) {
+
+  listenTo( mouse.moves, mouse.clicks )
   reactions += {
     case e: MouseEntered => foreground = Color.blue
     case e: MouseExited  => foreground = Color.black
@@ -165,8 +190,31 @@ class LatexLabel( main: ProofToolViewer[_], val ft: Font, val latexText: String,
       }
       d.location = locationOnScreen
       d.open()
-    /*case ChangeFormulaColor( set, color, reset ) =>
-      if ( set.contains( fo ) ) background = color
-      else if ( reset ) background = Color.white*/
   }
+}
+
+/**
+ * Label for displaying commas.
+ * @param main The main Prooftool window that this belongs to.
+ */
+class CommaLabel( val main: ProofToolViewer[_] ) extends Label( ",", icon0 = null, Alignment.Center ) {
+  def defaultBorder = Swing.EmptyBorder( font.getSize / 5, 2, 0, font.getSize / 5 )
+  border = defaultBorder
+  font = main.font
+
+  listenTo( main.publisher )
+
+  reactions += {
+    case FontChanged =>
+      font = main.font
+      border = defaultBorder
+  }
+}
+
+/**
+ * Latexlabel for displaying the turnstile symbol (u+22a2, ⊢)
+ * @param main The main Prooftool window that this belongs to.
+ */
+class LatexTurnstileLabel( main: ProofToolViewer[_] ) extends LatexLabel( main, "\\vdash" ) {
+  override def defaultBorder = Swing.EmptyBorder( font.getSize / 6 )
 }

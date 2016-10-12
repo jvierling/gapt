@@ -4,20 +4,22 @@ import at.logic.gapt.expr._
 import at.logic.gapt.formats.babel.BabelSignature
 import at.logic.gapt.proofs._
 import at.logic.gapt.proofs.expansion.{ ETAtom, ETWeakQuantifier, ExpansionProof }
-import at.logic.gapt.proofs.resolution.{ Input, MguResolution }
+import at.logic.gapt.proofs.resolution.{ Input, MguResolution, eliminateSplitting }
+import at.logic.gapt.provers.escargot.Escargot
+import at.logic.gapt.provers.smtlib.Z3
 import at.logic.gapt.utils.SatMatchers
 import org.specs2.mutable._
 
 class ErasureReductionTest extends Specification with SatMatchers {
   "two-sorted" in {
-    implicit var ctx = FiniteContext()
+    implicit var ctx = Context()
     ctx += Context.InductiveType( "nat", hoc"0: nat", hoc"s: nat>nat" )
     ctx += Context.Sort( "witness" )
     ctx += hoc"f: witness > witness"
     ctx += hoc"P: nat > witness > o"
     ctx += hoc"Q: nat > o"
 
-    val red = new ErasureReductionHelper( ctx.constants )
+    val red = new ErasureReductionHelper( ctx.constants.toSet )
 
     val c1 = Clause() :+ hoa"P 0 y"
     val c2 = hoa"P x (f y)" +: Clause() :+ hoa"P (s x) y"
@@ -40,28 +42,83 @@ class ErasureReductionTest extends Specification with SatMatchers {
   }
 
   "variables as weak quantifier instances" in {
-    implicit var ctx = FiniteContext()
+    implicit var ctx = Context()
     ctx += Context.Sort( "foo" )
     ctx += hoc"P: foo>o"
 
     val sequent = hof"∀x P x" +: Sequent() :+ hof"∃x P x"
 
-    val red = new ErasureReductionHelper( ctx.constants )
+    val red = new ErasureReductionHelper( ctx.constants.toSet )
 
     val deepAtom = red.forward( hof"P z", Map( hov"z: foo" -> FOLVar( "z" ) ) ).asInstanceOf[FOLAtom]
     val firstOrderEP =
       ExpansionProof(
         ETWeakQuantifier(
           red.forward( hof"∀x P x", Map() ),
-          Map( FOLVar( "z" ) -> ETAtom( deepAtom, false ) )
+          Map( FOLVar( "z" ) -> ETAtom( deepAtom, Polarity.InAntecedent ) )
         ) +:
           Sequent()
           :+ ETWeakQuantifier(
             red.forward( hof"∃x P x", Map() ),
-            Map( FOLVar( "z" ) -> ETAtom( deepAtom, true ) )
+            Map( FOLVar( "z" ) -> ETAtom( deepAtom, Polarity.InSuccedent ) )
           )
       )
 
     red.back( firstOrderEP, sequent ).deep must beValidSequent
+  }
+}
+
+class ReductionTest extends Specification {
+  "many-sorted lambda" in {
+    val sequent = hos"∀f P(f) = f(c: nat) :- P(λx h(h(x))) = h(h(c))"
+
+    "resolution" in {
+      val reduction =
+        LambdaEliminationReductionRes() |>
+          HOFunctionReductionRes() |>
+          CNFReductionResRes |>
+          // PredicateReductionCNF |>
+          ErasureReductionCNF
+
+      val ( folCNF, back ) = reduction.forward( sequent )
+
+      val Some( folProof ) = Escargot.getResolutionProof( folCNF )
+
+      val proof = back( eliminateSplitting( folProof ) )
+      proof.subProofs foreach {
+        case Input( Sequent( Seq( conj ), Seq() ) )  => conj must_== sequent.succedent.head
+        case Input( Sequent( Seq(), Seq( axiom ) ) ) => axiom must_== sequent.antecedent.head
+        case Input( _ )                              => ko
+        case _                                       => ok
+      }
+      ok
+    }
+
+    "expansion" in {
+      val reduction =
+        LambdaEliminationReductionET() |>
+          HOFunctionReductionET() |>
+          // PredicateReductionET |>
+          ErasureReductionET
+
+      val ( folSequent, back ) = reduction.forward( sequent )
+
+      val Some( folProof ) = Escargot.getExpansionProof( folSequent )
+
+      val proof = back( folProof )
+      proof.shallow must_== sequent
+
+      val reductionForChecking =
+        LambdaEliminationReduction() |>
+          HOFunctionReduction()
+      val ( tffDeep, _ ) = reductionForChecking.forward( proof.deep )
+
+      Escargot isValid tffDeep must_== true
+
+      val z3WithQuantifiers = new Z3( "UF" )
+      if ( !z3WithQuantifiers.isInstalled ) skipped
+      z3WithQuantifiers.isValid( tffDeep ) must_== true
+    }
+
   }
 }

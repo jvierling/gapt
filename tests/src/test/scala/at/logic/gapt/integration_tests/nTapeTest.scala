@@ -1,6 +1,6 @@
 package at.logic.gapt.integration_tests
 
-import at.logic.gapt.examples.{ nTape2, nTape3 }
+import at.logic.gapt.examples._
 import at.logic.gapt.proofs.Sequent
 import at.logic.gapt.proofs.lksk.LKskProof
 import at.logic.gapt.proofs.lksk.LKskProof.Label
@@ -20,6 +20,8 @@ class nTapeTest extends Specification {
       //println( acnf_lkconclusion )
       acnf_lkconclusion.multiSetEquals( nTape2.preprocessed_input_proof.conclusion ) must beTrue
 
+      nTape2.thf_reproving_deep( None ) must be_!=( "" )
+
       ok( "acnf could be created" )
     }
 
@@ -35,6 +37,7 @@ class nTapeTest extends Specification {
 
       val acnf_lkconclusion = nTape3.acnf.conclusion.map( _._2 )
       acnf_lkconclusion.multiSetEquals( nTape3.preprocessed_input_proof.conclusion ) must beTrue
+      nTape3.thf_reproving_deep( None ) must be_!=( "" )
 
       ok( "acnf could be created" )
     }
@@ -43,6 +46,26 @@ class nTapeTest extends Specification {
       if ( !EProver.isInstalled ) skipped( "No EProver installed!" )
       nTape3.printStatistics()
       ok( "all statistics created!" )
+    }
+
+    "calculate of the css for version 4 of the n-tape proof" in {
+      for ( i <- 2 to 4 ) nTape4( i ).preprocessed_css_hol_clauses
+      ok( "computations done" )
+    }
+
+    "calulate the css for version 5 of the n-tape proof" in {
+      for ( i <- 2 to 4 ) nTape5( i ).preprocessed_css_hol_clauses
+      ok( "computations done" )
+    }
+
+    "calulate the css for version 5 with arithmetical if-then-else of the n-tape proof" in {
+      nTape5Arith( 2 ).preprocessed_css_hol_clauses
+      ok( "computations done" )
+    }
+
+    "evaluate the formulas in the if-then-else tests" in {
+      nTape6.sequents
+      ok( "terms created" )
     }
   }
 

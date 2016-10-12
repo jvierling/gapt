@@ -4,7 +4,7 @@ import org.apache.commons.compress.archivers.tar.{ TarArchiveEntry, TarArchiveOu
 import com.typesafe.sbt.SbtScalariform._
 import scalariform.formatter.preferences._
 
-val Version = "2.2-SNAPSHOT"
+val Version = "2.4-SNAPSHOT"
 
 lazy val commonSettings = Seq(
   organization := "at.logic.gapt",
@@ -45,7 +45,7 @@ lazy val commonSettings = Seq(
     .setPreference( DoubleIndentClassDeclaration, true )
     .setPreference( SpaceInsideParentheses, true ) )
 
-val specs2Version = "3.8.3"
+val specs2Version = "3.8.5"
 lazy val testSettings = Seq(
   testOptions in Test += Tests.Argument( TestFrameworks.Specs2, "junitxml", "console" ),
   libraryDependencies ++= Seq(
@@ -104,7 +104,7 @@ lazy val root = project.in( file( "." ) ).
 
     scripts := {
       val runJVMOptions = javaOptions.value ++ Seq( "-cp", Path.makeString(
-        Attributed.data( fullClasspath.in( cli, Compile ).value )
+        Attributed.data( fullClasspath.in( cli, Compile ).value ++ fullClasspath.in( testing, Compile ).value distinct )
       ) )
       def mkScript( file: File, extraArgs: String* ) = {
         IO.write(
@@ -115,6 +115,7 @@ lazy val root = project.in( file( "." ) ).
       }
       (
         mkScript( target.value / "run" ),
+        mkScript( target.value / "test-cut-intro", "at.logic.gapt.testing.testCutIntro" ),
         mkScript( target.value / "viper", "at.logic.gapt.provers.viper.Viper" ),
         mkScript( target.value / "escargot", "at.logic.gapt.provers.escargot.Escargot" ),
         mkScript( target.value / "cli", "at.logic.gapt.cli.CLIMain" )
@@ -133,7 +134,7 @@ lazy val root = project.in( file( "." ) ).
       Process( List( "latexmk", "-pdf", "user_manual.tex" ), baseDir / "doc" ) !
 
       val filesToIncludeAsIs = List(
-        "COPYING", "gapt.sh", "include.sh", "examples"
+        "COPYING", "gapt.sh", "escargot.sh", "viper.sh", "include.sh", "examples"
       )
       val entries = List( ( assembly.value, s"gapt-$version.jar" ) ) ++
         filesToIncludeAsIs.flatMap { fn => recursiveListFiles( baseDir / fn ) }
@@ -194,14 +195,14 @@ lazy val core = project.in( file( "core" ) ).
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
       "org.parboiled" %% "parboiled" % "2.1.3",
-      "com.lihaoyi" %% "fastparse" % "0.3.7",
-      "com.googlecode.kiama" %% "kiama" % "1.8.0",
-      "com.lihaoyi" %% "sourcecode" % "0.1.1",
-      "org.scalaz" %% "scalaz-core" % "7.2.3",
-      "org.scala-lang.modules" %% "scala-xml" % "1.0.5",
+      "com.lihaoyi" %% "fastparse" % "0.4.1",
+      "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.0.0",
+      "com.lihaoyi" %% "sourcecode" % "0.1.2",
+      "org.scalaz" %% "scalaz-core" % "7.2.6",
+      "org.scala-lang.modules" %% "scala-xml" % "1.0.6",
       "org.apache.commons" % "commons-lang3" % "3.4",
-      "org.slf4j" % "slf4j-api" % "1.7.21",
-      "org.slf4j" % "slf4j-log4j12" % "1.7.21",
+      "com.github.pathikrit" %% "better-files" % "2.16.0",
+      "ch.qos.logback" % "logback-classic" % "1.1.7",
       "org.ow2.sat4j" % "org.ow2.sat4j.core" % "2.3.5",
       "org.ow2.sat4j" % "org.ow2.sat4j.maxsat" % "2.3.5"
     ),
@@ -275,7 +276,7 @@ lazy val testing = project.in( file( "testing" ) ).
     bintrayReleaseOnPublish := false,
     packagedArtifacts := Map(),
 
-    libraryDependencies += "org.json4s" %% "json4s-native" % "3.3.0"
+    libraryDependencies += "org.json4s" %% "json4s-native" % "3.4.1"
   )
 
 lazy val releaseDist = TaskKey[File]( "release-dist", "Creates the release tar ball." )

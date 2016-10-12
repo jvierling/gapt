@@ -7,11 +7,11 @@ import at.logic.gapt.grammars.SipGrammar
 import at.logic.gapt.proofs.FOLClause
 import at.logic.gapt.proofs.expansion._
 import at.logic.gapt.proofs.lk._
-import at.logic.gapt.proofs.resolution.{ forgetfulPropResolve, forgetfulPropParam }
+import at.logic.gapt.proofs.resolution.{ forgetfulPropParam, forgetfulPropResolve }
 import at.logic.gapt.provers.Prover
 import at.logic.gapt.provers.prover9.Prover9
 import at.logic.gapt.provers.verit.VeriT
-import at.logic.gapt.utils.logging.Logger
+import at.logic.gapt.utils.Logger
 
 import scala.collection.mutable
 
@@ -296,7 +296,7 @@ class SimpleInductionProof(
   def toSipGrammar: SipGrammar = {
     import SipGrammar._
 
-    val termEncoding = FOLInstanceTermEncoding( EndSequent )
+    val termEncoding = InstanceTermEncoding( EndSequent, Ti )
     val terms = termEncoding.encode( ExpSeq0 ) ++ termEncoding.encode( ExpSeq1 ) ++ termEncoding.encode( ExpSeq2 ) map { _.asInstanceOf[FOLTerm] }
     val tauProductions = terms map { x => tau -> x }
     val gammaProductions = t map { ti => gamma -> ti }
@@ -397,7 +397,7 @@ object findConseq extends Logger {
   }
 
   def apply( S: SimpleInductionProof, n: Int, A: FOLFormula, M: Set[CNF], forgetClauses: Boolean = false, prover: Prover = VeriT ): Set[CNF] =
-    apply( S, n, CNFp.toClauseList( A ).map { _.distinct.sortBy { _.hashCode } }.toSet, M, forgetClauses, prover )
+    apply( S, n, CNFp( A ).map { _.distinct.sortBy { _.hashCode } }, M, forgetClauses, prover )
 
   def ForgetOne( A: CNF ) = for ( a <- A ) yield A - a
 }

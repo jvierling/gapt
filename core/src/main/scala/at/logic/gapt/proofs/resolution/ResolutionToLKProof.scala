@@ -31,7 +31,7 @@ object ResolutionToLKProof {
 
     def reducef( p: PropositionalResolutionRule )( func: HOLFormula => LKProof ) = {
       val q = f( p.subProof )
-      reduceAxiom( q, q.conclusion.indexOfPol( p.subProof.conclusion( p.idx ), p.idx.isSuc ) )( func )
+      reduceAxiom( q, q.conclusion.indexOfPol( p.subProof.conclusion( p.idx ), p.idx.polarity ) )( func )
     }
 
     def contract( p: ResolutionProof, q: LKProof ) =
@@ -41,6 +41,22 @@ object ResolutionToLKProof {
       case in: Input       => input( in )
       case Taut( formula ) => LogicalAxiom( formula )
       case Refl( term )    => ReflexivityAxiom( term )
+
+      case p @ Defn( defConst, defExpr ) =>
+        val phi = BetaReduction.betaNormalize( defExpr( p.vars ) ).asInstanceOf[HOLFormula]
+        val definition = Definition( defConst, defExpr )
+        val ctx = replacementContext.abstractTerm( defConst( p.vars: _* ) )( defConst )
+
+        ProofBuilder.
+          c( LogicalAxiom( phi ) ).
+          u( DefinitionLeftRule( _, Ant( 0 ), definition, ctx ) ).
+          u( ImpRightRule( _, Ant( 0 ), Suc( 0 ) ) ).
+          c( LogicalAxiom( phi ) ).
+          u( DefinitionRightRule( _, Suc( 0 ), definition, ctx ) ).
+          u( ImpRightRule( _, Ant( 0 ), Suc( 0 ) ) ).
+          b( AndRightRule( _, Suc( 0 ), _, Suc( 0 ) ) ).
+          u( ForallRightBlock( _, p.definitionFormula, p.vars ) ).
+          qed
 
       case Factor( q, i1, i2 ) =>
         if ( i1 isAnt )
@@ -57,38 +73,58 @@ object ResolutionToLKProof {
         else
           ParamodulationRightRule( f( q1 ), q1.conclusion( i1 ), f( q2 ), q2.conclusion( i2 ), ctx )
 
-      case p @ AvatarAbsurd( q ) => f( q )
-      case AvatarComponentIntro( comp @ AvatarNonGroundComp( splAtom, definition, vars ) ) =>
+      case p @ AvatarContradiction( q ) => f( q )
+      case AvatarComponent( comp @ AvatarNonGroundComp( splAtom, aux, vars ) ) =>
         val \/-( p1 ) = solvePropositional( comp.disjunction +: comp.clause )
-        val p2 = ForallLeftBlock( p1, definition, vars )
-        val p3 = DefinitionLeftRule( p2, definition, splAtom )
+        val p2 = ForallLeftBlock( p1, aux, vars )
+
+        val p3 = DefinitionLeftRule( p2, aux, comp.toDefinition, splAtom )
         p3
-      case AvatarComponentIntro( AvatarGroundComp( atom, _ ) ) => LogicalAxiom( atom )
-      case AvatarComponentIntro( comp @ AvatarNegNonGroundComp( splAtom, definition, vars, idx ) ) =>
+      case AvatarComponent( AvatarGroundComp( atom, _ ) ) => LogicalAxiom( atom )
+      case AvatarComponent( comp @ AvatarNegNonGroundComp( splAtom, aux, vars, idx ) ) =>
         val \/-( p1 ) = solvePropositional( comp.clause :+ comp.disjunction )
-        val p2 = ForallRightBlock( p1, definition, vars )
-        val p3 = DefinitionRightRule( p2, definition, splAtom )
+        val p2 = ForallRightBlock( p1, aux, vars )
+        val p3 = DefinitionRightRule( p2, aux, comp.toDefinition, splAtom )
         p3
-      case AvatarComponentElim( q, indices, AvatarGroundComp( _, _ ) ) => f( q )
-      case p @ AvatarComponentElim( q, _, comp @ AvatarNonGroundComp( splAtom, definition, vars ) ) =>
+      case AvatarSplit( q, indices, AvatarGroundComp( _, _ ) ) => f( q )
+      case p @ AvatarSplit( q, _, comp @ AvatarNonGroundComp( splAtom, aux, vars ) ) =>
         var p_ = f( q )
-        for ( a <- comp.clause.antecedent ) p_ = NegRightRule( p_, a )
+        for {
+          a <- comp.clause.antecedent
+          if p_.conclusion.antecedent contains a
+        } p_ = NegRightRule( p_, a )
         def mkOr( lits: HOLFormula ): Unit =
           lits match {
             case Or( lits_, lit ) =>
               mkOr( lits_ )
               p_ = OrRightMacroRule( p_, lits_, lit )
-            case _ =>
+            case lit =>
+              if ( !p_.conclusion.succedent.contains( lit ) )
+                p_ = WeakeningRightRule( p_, lit )
           }
         mkOr( comp.disjunction )
-        p_ = ForallRightBlock( p_, definition, vars )
-        p_ = DefinitionRightRule( p_, definition, splAtom )
+        p_ = ForallRightBlock( p_, aux, vars )
+        p_ = DefinitionRightRule( p_, aux, comp.toDefinition, splAtom )
         p_
 
-      case DefIntro( q, i: Suc, defAtom, defn ) =>
-        DefinitionRightRule( f( q ), q.conclusion( i ), defAtom )
-      case DefIntro( q, i: Ant, defAtom, defn ) =>
-        DefinitionLeftRule( f( q ), q.conclusion( i ), defAtom )
+      case DefIntro( q, i: Suc, definition, args ) =>
+        val Definition( what, by ) = definition
+        val tp = what.exptype
+        val X = rename awayFrom freeVariables( args ) fresh Var( "X", tp )
+        val ctx = Abs( X, Apps( X, args ) )
+        DefinitionRightRule( f( q ), q.conclusion( i ), definition, ctx )
+
+      case DefIntro( q, i: Ant, definition, args ) =>
+        val Definition( what, by ) = definition
+        val tp = what.exptype
+        val X = rename awayFrom freeVariables( args ) fresh Var( "X", tp )
+        val ctx = Abs( X, Apps( X, args ) )
+        DefinitionLeftRule( f( q ), q.conclusion( i ), definition, ctx )
+
+      case p @ Flip( q, i: Ant ) =>
+        CutRule( mkSymmProof( p.s, p.t ), f( q ), q.conclusion( i ) )
+      case p @ Flip( q, i: Suc ) =>
+        CutRule( f( q ), mkSymmProof( p.t, p.s ), q.conclusion( i ) )
 
       case p: TopL    => reducef( p ) { _ => TopAxiom }
       case p: BottomR => reducef( p ) { _ => BottomAxiom }
@@ -133,7 +169,7 @@ object ResolutionToLKProof {
       val extraSequent =
         if ( idx.isSuc ) proofToInsert.conclusion.removeFromAntecedent( formula )
         else proofToInsert.conclusion.removeFromSuccedent( formula )
-      val formulaMultiplicities = extraSequent.polarizedElements.groupBy( identity ).mapValues( _.size )
+      val formulaMultiplicities = Map() ++ extraSequent.polarizedElements.groupBy( identity ).mapValues( _.size )
 
       override def transportToSubProof( isAncestor: Sequent[Boolean], proof: LKProof, subProofIdx: Int ) =
         proof.occConnectors( subProofIdx ).parent( isAncestor, false )
@@ -146,13 +182,31 @@ object ResolutionToLKProof {
 
       // Contract ancestors as soon as possible, and then skip the following contractions.
       override def recurse( proof: LKProof, isAncestor: Sequent[Boolean] ): ( LKProof, OccConnector[HOLFormula] ) = {
-        if ( isAncestor.forall( _ == false ) ) return ( proof, OccConnector( proof.conclusion ) )
-        val ( proofNew, conn ) = super.recurse( proof, isAncestor )
-        contract( proofNew, conn )
+        if ( isAncestor.forall( _ == false ) ) {
+          ( proof, OccConnector( proof.conclusion ) )
+        } else {
+          val mainAncestors = proof.mainIndices.filter( isAncestor( _ ) )
+          if ( !proof.isInstanceOf[LogicalAxiom] && mainAncestors.nonEmpty ) {
+            val mainAncestor = mainAncestors.head
+            val ( proof3, conn ) = if ( mainAncestor.isAnt ) {
+              val proof2 = CutRule( LogicalAxiom( proof.conclusion( mainAncestor ) ), Suc( 0 ), proof, mainAncestor )
+              recurse( proof2, proof2.getRightOccConnector.inv.parent( isAncestor, true ) )
+            } else {
+              val proof2 = CutRule( proof, mainAncestor, LogicalAxiom( proof.conclusion( mainAncestor ) ), Ant( 0 ) )
+              recurse( proof2, proof2.getLeftOccConnector.inv.parent( isAncestor, true ) )
+            }
+            // FIXME: do this properly
+            val proof4 = ReductiveCutElimination( proof3 )
+            ( proof4, OccConnector.guessInjection( proof3.conclusion, proof4.conclusion ) * conn )
+          } else {
+            val ( proofNew, conn ) = super.recurse( proof, isAncestor )
+            contract( proofNew, conn )
+          }
+        }
       }
       def contract( subProof: LKProof, subConn: OccConnector[HOLFormula] ): ( LKProof, OccConnector[HOLFormula] ) = {
         val newIndices = subConn.parentsSequent.indicesWhere( _.isEmpty )
-        val newIndicesByFormula = newIndices.groupBy( i => subProof.conclusion( i ) -> i.isSuc )
+        val newIndicesByFormula = newIndices.groupBy( i => subProof.conclusion( i ) -> i.polarity )
         newIndicesByFormula.find( ni => ni._2.size > formulaMultiplicities( ni._1 ) ) match {
           case Some( ( _, Seq( i, j, _* ) ) ) =>
             val contracted = if ( i.isSuc ) ContractionRightRule( subProof, i, j ) else ContractionLeftRule( subProof, i, j )
@@ -174,4 +228,11 @@ object ResolutionToLKProof {
         }
     }.apply( proof, proof.conclusion.indicesSequent.map( _ == idx ) )
 
+  /** Proof of t=s :- s=t */
+  def mkSymmProof( t: LambdaExpression, s: LambdaExpression ): LKProof =
+    ProofBuilder.
+      c( ReflexivityAxiom( t ) ).
+      u( WeakeningLeftRule( _, Eq( t, s ) ) ).
+      u( EqualityRightRule( _, Ant( 0 ), Suc( 0 ), Eq( s, t ) ) ).
+      qed
 }

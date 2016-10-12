@@ -1,7 +1,9 @@
 package at.logic.gapt.formats.tptp
 
 import at.logic.gapt.expr._
+import at.logic.gapt.formats.InputFile
 import org.parboiled2._
+import better.files._
 
 import scala.util.{ Failure, Success }
 
@@ -34,7 +36,7 @@ class TptpParser( val input: ParserInput ) extends Parser {
   def and_formula_part = rule { ( "&" ~ Ws ~ unitary_formula ).+ ~> ( ( a: HOLFormula, as: Seq[HOLFormula] ) => And.leftAssociative( a +: as: _* ) ) }
   def unitary_formula: Rule1[HOLFormula] = rule { quantified_formula | unary_formula | atomic_formula | "(" ~ Ws ~ logic_formula ~ ")" ~ Ws }
   def quantified_formula = rule { fol_quantifier ~ "[" ~ Ws ~ variable_list ~ "]" ~ Ws ~ ":" ~ Ws ~ unitary_formula ~> ( ( q: QuantifierHelper, vs, m ) => q.Block( vs, m ) ) }
-  def variable_list = rule { variable.+.separatedBy( Comma ) }
+  def variable_list = rule { ( variable ~ ( ":" ~ Ws ~ name ).? ~> ( ( a, b ) => a ) ).+.separatedBy( Comma ) }
   def unary_formula = rule { "~" ~ Ws ~ unitary_formula ~> ( Neg( _ ) ) }
 
   def atomic_formula = rule { defined_prop | infix_formula | plain_atomic_formula | ( distinct_object ~> ( FOLAtom( _ ) ) ) }
@@ -105,22 +107,21 @@ class TptpParser( val input: ParserInput ) extends Parser {
 }
 
 object TptpParser {
-  def parseString( input: String, sourceName: String = "<string>" ): TptpFile = {
+  def parse( file: InputFile ): TptpFile = {
+    val input = file.read
     val parser = new TptpParser( input )
     parser.TPTP_file.run() match {
       case Failure( error: ParseError ) =>
-        throw new IllegalArgumentException( s"Parse error in $sourceName:\n" +
+        throw new IllegalArgumentException( s"Parse error in ${file.fileName}:\n" +
           parser.formatError( error, new ErrorFormatter( showTraces = true ) ) )
       case Failure( exception ) => throw exception
       case Success( value )     => value
     }
   }
 
-  def parseFile( fileName: String ): TptpFile =
-    parseString( io.Source.fromFile( fileName ).mkString, fileName )
-  def loadFile( fileName: String ): TptpFile =
-    resolveIncludes( TptpFile( Seq( IncludeDirective( fileName, None ) ) ), parseFile )
+  def load( file: InputFile ): TptpFile =
+    resolveIncludes( parse( file ), fileName => parse( fileName.toFile ) )
 
   def main( args: Array[String] ): Unit =
-    print( loadFile( args.head ) )
+    print( load( args.head.toFile ) )
 }

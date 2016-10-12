@@ -2,11 +2,11 @@ package at.logic.gapt.testing
 
 import at.logic.gapt.cli.CLIMain
 
-import scala.io.Source
-import scala.reflect
 import scala.sys.process
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter._
+
+import better.files._
 
 object evalCodeSnippetsInLatex {
 
@@ -31,7 +31,7 @@ object evalCodeSnippetsInLatex {
       repl command CLIMain.imports
 
       // don't open prooftool
-      repl command "def prooftool(x: Any): Unit = ()"
+      repl command "def prooftool[T: at.logic.gapt.prooftool.ProoftoolViewable](x: T, name: String = \"\"): Unit = ()"
 
       // don't open help
       repl command "def help(x: Any*): Unit = ()"
@@ -123,7 +123,7 @@ object evalCodeSnippetsInLatex {
 
   def main( args: Array[String] ) = {
     val Array( inFile ) = args
-    processLines( Source.fromFile( inFile ).getLines().toStream, mkInterp() )
+    processLines( inFile.toFile.lines.toStream, mkInterp() )
   }
 
 }

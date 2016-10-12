@@ -29,7 +29,7 @@ class LeanCoP extends OneShotProver with ExternalProgram {
     renameConstantsToFi.wrap( cnf.keys ++: Sequent() )( ( renaming, sequent: HOLSequent ) => {
       val tptp = TPTPFOLExporter( sequent ).toString
       withTempFile.fromString( tptp ) { leanCoPInput =>
-        runProcess.withExitValue( Seq( "leancop", leanCoPInput ) )
+        runProcess.withExitValue( Seq( "leancop", leanCoPInput.pathAsString ) )
       } match {
         case ( 1, leanCopOutput ) if leanCopOutput contains "is Satisfiable" =>
           None
@@ -49,7 +49,7 @@ class LeanCoP extends OneShotProver with ExternalProgram {
       }
 
       val substs = for {
-        ETWeakQuantifierBlock( shallow, insts ) <- es.elements
+        ETWeakQuantifierBlock( shallow, _, insts ) <- es.elements
         ( formula @ All.Block( vars, _ ), clause ) <- cnf
         if formula == shallow
       } yield clause.conclusion.asInstanceOf[HOLClause] ->

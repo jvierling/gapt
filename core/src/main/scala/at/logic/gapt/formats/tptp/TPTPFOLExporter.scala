@@ -1,6 +1,7 @@
 package at.logic.gapt.formats.tptp
 
 import at.logic.gapt.expr._
+import at.logic.gapt.expr.hol.univclosure
 import at.logic.gapt.proofs.{ HOLClause, HOLSequent }
 
 object TPTPFOLExporter {
@@ -8,29 +9,33 @@ object TPTPFOLExporter {
     TptpFile( Seq( AnnotatedFormula( "fof", "formula", "conjecture", formula, Seq() ) ) )
 
   def apply( sequent: HOLSequent ): TptpFile = {
-    require( freeVariables( sequent ).isEmpty )
+    require( freeVariables( sequent ).isEmpty, s"Sequent $sequent is not ground! " )
 
     val file = Seq.newBuilder[TptpInput]
 
     sequent.antecedent.zipWithIndex foreach {
-      case ( formula: FOLFormula, i ) =>
+      case ( formula, i ) =>
         file += AnnotatedFormula( "fof", s"ant_$i", "axiom", formula, Seq() )
     }
 
     if ( sequent.succedent.size <= 1 ) {
       sequent.succedent foreach {
-        case formula: FOLFormula =>
+        case formula =>
           file += AnnotatedFormula( "fof", "suc_0", "conjecture", formula, Seq() )
       }
     } else {
       sequent.succedent.zipWithIndex foreach {
-        case ( formula: FOLFormula, i ) =>
+        case ( formula, i ) =>
           file += AnnotatedFormula( "fof", s"suc_$i", "axiom", -formula, Seq() )
       }
     }
 
     TptpFile( file.result() )
   }
+
+  def apply( sequentSet: Iterable[HOLSequent] ): TptpFile =
+    TptpFile( for ( ( seq, i ) <- sequentSet.toSeq.zipWithIndex )
+      yield AnnotatedFormula( "fof", s"seq_$i", "axiom", univclosure( seq.toDisjunction ), Seq() ) )
 
   def exportLabelledCNF( cnf: Iterable[( String, HOLClause )] ): TptpFile =
     TptpFile( cnf.toSeq.map( c => exportClause( c._2, c._1 ) ) )

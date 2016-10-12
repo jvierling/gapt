@@ -4,31 +4,15 @@ import at.logic.gapt.expr._
 import at.logic.gapt.proofs._
 import at.logic.gapt.provers.OneShotProver
 
-/**
- * Bottom-up construction of sequent calculus proofs.
- *
- * Currently supports propositional logic as well as proof construction using expansion trees.
- */
-object solve {
-  /**
-   * Main method for solving propositional sequents
-   *
-   * @param seq: sequent to prove
-   * @return a proof if there is one
-   */
-  def solvePropositional( seq: HOLSequent ): Option[LKProof] =
-    at.logic.gapt.proofs.lk.solvePropositional( seq ).toOption
-
+object LKProver extends OneShotProver {
+  def getLKProof( seq: HOLSequent ): Option[LKProof] = solvePropositional( seq ).toOption
 }
 
-object LKProver extends OneShotProver {
-  def getLKProof( seq: HOLSequent ): Option[LKProof] = solve.solvePropositional( seq )
+object EquationalLKProver extends OneShotProver {
+  def getLKProof( seq: HOLSequent ): Option[LKProof] = solveQuasiPropositional( seq ).toOption
 }
 
 object AtomicExpansion {
-
-  def apply( fs: HOLSequent ): LKProof =
-    WeakeningMacroRule( apply( fs.antecedent intersect fs.succedent head ), fs )
 
   def apply( f: HOLFormula ): LKProof = f match {
     case a: HOLAtom  => LogicalAxiom( a )

@@ -1,14 +1,12 @@
 package at.logic.gapt.prooftool
 
-import java.io.{ ByteArrayInputStream, File, InputStreamReader, BufferedWriter => JBufferedWriter, FileWriter => JFileWriter }
-
+import better.files._
 import at.logic.gapt.expr.HOLFormula
-import at.logic.gapt.formats.latex.{ ProofToLatexExporter, SequentsListLatexExporter }
+import at.logic.gapt.formats.latex.LatexExporter
 import at.logic.gapt.proofs._
 import at.logic.gapt.proofs.lk.{ LKProof, LKToExpansionProof }
 import at.logic.gapt.proofs.lksk.LKskProof
 import at.logic.gapt.proofs.lksk.LKskProof.LabelledFormula
-import at.logic.gapt.formats.latex.LatexUIRenderer.{ formulaToLatexString, labelledFormulaToLatexString }
 import at.logic.gapt.formats.llk.exportLLK
 
 import scala.swing._
@@ -20,7 +18,7 @@ import scala.swing._
  * @param proof The proof to be displayed.
  * @tparam T The type of dag proof.
  */
-abstract class DagProofViewer[T <: DagProof[T]]( name: String, proof: DagProof[T] ) extends ProofToolViewer[DagProof[T]]( name, proof ) {
+abstract class DagProofViewer[T <: DagProof[T]]( name: String, proof: DagProof[T] ) extends ScrollableProofToolViewer[DagProof[T]]( name, proof ) {
   override val content = proof
 
 }
@@ -35,32 +33,22 @@ abstract class DagProofViewer[T <: DagProof[T]]( name: String, proof: DagProof[T
  */
 class SequentProofViewer[F, T <: SequentProof[F, T]]( name: String, proof: SequentProof[F, T], sequent_element_renderer: F => String ) extends DagProofViewer[T]( name, proof ) {
   override type MainComponentType = DrawSequentProof[F, T]
-  override def createMainComponent( fSize: Int ) = new DrawSequentProof(
+  override def createMainComponent = new DrawSequentProof(
     this,
     proof,
-    fSize,
-    hideContexts = false,
     Set(),
-    markCutAncestors = false,
     Set(),
-    "",
     sequent_element_renderer,
     Nil
   )
 
-  def hideSequentContext() {
-    mainComponent.hideContexts = true
-    mainComponent.initialize()
-    mainComponent.revalidate()
-    scrollPane.cursor = java.awt.Cursor.getDefaultCursor
-  }
+  scrollPane.border = Swing.EmptyBorder( 0, 0, 10, 0 )
 
-  def showAllFormulas() {
-    mainComponent.hideContexts = false
-    mainComponent.initialize()
-    mainComponent.revalidate()
-    scrollPane.cursor = java.awt.Cursor.getDefaultCursor
-  }
+  override def viewMenuContents = super.viewMenuContents ++ Seq( new Separator(), sunburstViewButton )
+
+  def hideSequentContext() = publisher.publish( HideSequentContexts )
+
+  def showAllFormulas() = publisher.publish( ShowAllFormulas )
 
   /**
    * Displays the dag proof in sunburst form.
@@ -78,13 +66,9 @@ class SequentProofViewer[F, T <: SequentProof[F, T]]( name: String, proof: Seque
     d.open()
   }
 
-  /*def displaySunburst( name: String, proof: DagProof[T] ) {
-    showFrame()
-    scrollPane.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
-    proof match { case proof: SequentProof[_, _] => loadProof( ( name, proof ) ) }
-    initSunburstDialog( name, proof )
-    scrollPane.cursor = java.awt.Cursor.getDefaultCursor
-  }*/
+  def sunburstViewButton = new MenuItem( Action( "Sunburst View" ) {
+    sunburstView()
+  } )
 
 }
 
@@ -94,10 +78,10 @@ class SequentProofViewer[F, T <: SequentProof[F, T]]( name: String, proof: Seque
  * @param name The name to be displayed at the top.
  * @param proof The proof to be displayed.
  */
-class LKProofViewer( name: String, proof: LKProof ) extends SequentProofViewer[HOLFormula, LKProof]( name, proof, formulaToLatexString ) with Savable[LKProof] with ContainsLKProof {
+class LKProofViewer( name: String, proof: LKProof ) extends SequentProofViewer[HOLFormula, LKProof]( name, proof, LatexExporter( _ ) ) with Savable[LKProof] with ContainsLKProof {
   override val content: LKProof = proof
   override def fileMenuContents = Seq( openButton, saveAsButton, new Separator, exportToPDFButton, exportToPNGButton )
-  override def viewMenuContents = super.viewMenuContents ++ Seq( new Separator(), hideStructuralRulesButton, hideContextsButton, markCutAncestorsButton, new Separator(), viewExpansionProofButton, sunburstViewButton )
+  override def viewMenuContents = super.viewMenuContents ++ Seq( new Separator(), hideStructuralRulesButton, hideContextsButton, markCutAncestorsButton, new Separator(), viewExpansionProofButton )
 
   /**
    * Displays the expansion proof of proof in a new window.
@@ -124,14 +108,10 @@ class LKProofViewer( name: String, proof: LKProof ) extends SequentProofViewer[H
         try {
           if ( result.endsWith( ".llk" ) || chooser.fileFilter.getDescription == ".llk" ) {
             val filename = if ( result.endsWith( ".llk" ) ) result else result + ".llk"
-            val file = new JBufferedWriter( new JFileWriter( filename ) )
-            file.write( exportLLK( proof ) )
-            file.close()
+            filename.toFile < exportLLK( proof )
           } else if ( result.endsWith( ".tex" ) || chooser.fileFilter.getDescription == ".tex" ) {
             val filename = if ( result.endsWith( ".tex" ) ) result else result + ".tex"
-            val file = new JBufferedWriter( new JFileWriter( filename ) )
-            file.write( ProofToLatexExporter( proof ) )
-            file.close()
+            filename.toFile < LatexExporter( proof )
           } else infoMessage( "Proofs cannot be saved in this format." )
         } catch { case e: Throwable => errorMessage( "Cannot save the proof! " + dnLine + getExceptionString( e ) ) }
         finally { scrollPane.cursor = java.awt.Cursor.getDefaultCursor }
@@ -144,16 +124,13 @@ class LKProofViewer( name: String, proof: LKProof ) extends SequentProofViewer[H
 
   def markCutAncestors() {
     scrollPane.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
-    mainComponent.markCutAncestors = true
-    mainComponent.initialize()
-    mainComponent.revalidate()
+    publisher.publish( MarkCutAncestors )
     scrollPane.cursor = java.awt.Cursor.getDefaultCursor
   }
 
   def removeMarking(): Unit = {
-    mainComponent.markCutAncestors = false
-    mainComponent.initialize()
-    mainComponent.revalidate()
+    scrollPane.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
+    publisher.publish( UnmarkCutAncestors )
     scrollPane.cursor = java.awt.Cursor.getDefaultCursor
   }
 
@@ -164,14 +141,10 @@ class LKProofViewer( name: String, proof: LKProof ) extends SequentProofViewer[H
 
   def hideContextsButton = MenuButtons.hideContextsButton( this )
 
-  def markCutAncestorsButton = MenuButtons.marCutAncestorsButton( this )
+  def markCutAncestorsButton = MenuButtons.markCutAncestorsButton( this )
 
   def viewExpansionProofButton = new MenuItem( Action( "View expansion proof" ) {
     expansionTree()
-  } )
-
-  def sunburstViewButton = new MenuItem( Action( "Sunburst View" ) {
-    sunburstView()
   } )
 }
 
@@ -181,39 +154,23 @@ class LKProofViewer( name: String, proof: LKProof ) extends SequentProofViewer[H
  * @param name The name to be displayed at the top.
  * @param proof The proof to be displayed.
  */
-class LKskProofViewer( name: String, proof: LKskProof ) extends SequentProofViewer[LabelledFormula, LKskProof]( name, proof, labelledFormulaToLatexString ) {
+class LKskProofViewer( name: String, proof: LKskProof ) extends SequentProofViewer[LabelledFormula, LKskProof]( name, proof, lf => LatexExporter( lf._2 ) ) {
   override val content: LKskProof = proof
   override def fileMenuContents = Seq( openButton, new Separator, exportToPDFButton, exportToPNGButton )
-  override def viewMenuContents = super.viewMenuContents ++ Seq( new Separator(), sunburstViewButton )
 
   def hideStructuralRules(): Unit = publisher.publish( HideStructuralRules )
   def showAllRules(): Unit = publisher.publish( ShowAllRules( Nil ) )
 
   def markCutAncestors() {
     scrollPane.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
-    mainComponent.markCutAncestors = true
-    mainComponent.initialize()
-    mainComponent.revalidate()
+    publisher.publish( MarkCutAncestors )
     scrollPane.cursor = java.awt.Cursor.getDefaultCursor
   }
 
   def removeMarking(): Unit = {
-    mainComponent.markCutAncestors = false
-    mainComponent.initialize()
-    mainComponent.revalidate()
+    scrollPane.cursor = new java.awt.Cursor( java.awt.Cursor.WAIT_CURSOR )
+    publisher.publish( UnmarkCutAncestors )
     scrollPane.cursor = java.awt.Cursor.getDefaultCursor
   }
 
-  // New menu buttons
-  //  def saveAsButton = MenuButtons.saveAsButton[LKProof]( this.asInstanceOf[ProofToolViewer[LKProof] with Savable[LKProof]] )
-
-  //  def hideStructuralRulesButton = MenuButtons.hideStructuralRulesButton( this )
-
-  //  def hideContextsButton = MenuButtons.hideContextsButton( this )
-
-  //  def markCutAncestorsButton = MenuButtons.marCutAncestorsButton( this )
-
-  def sunburstViewButton = new MenuItem( Action( "Sunburst View" ) {
-    sunburstView()
-  } )
 }

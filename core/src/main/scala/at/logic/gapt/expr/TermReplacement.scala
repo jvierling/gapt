@@ -2,6 +2,7 @@
 package at.logic.gapt.expr
 
 import at.logic.gapt.proofs.Sequent
+import at.logic.gapt.utils.Not
 
 trait Replaceable[-I, +O] {
   def replace( obj: I, p: PartialFunction[LambdaExpression, LambdaExpression] ): O
@@ -10,7 +11,7 @@ trait Replaceable[-I, +O] {
 }
 trait ClosedUnderReplacement[T] extends Replaceable[T, T]
 
-private[expr] trait DefaultReplaceables {
+object Replaceable {
 
   private object lambdaExpressionReplacer extends ClosedUnderReplacement[LambdaExpression] {
     def replace( term: LambdaExpression, map: PartialFunction[LambdaExpression, LambdaExpression] ): LambdaExpression =
@@ -61,6 +62,14 @@ private[expr] trait DefaultReplaceables {
       obj.map.keySet ++ obj.map.values flatMap { containedNames( _ ) }
   }
 
+  implicit object definitionReplaceable extends ClosedUnderReplacement[Definition] {
+    def replace( definition: Definition, p: PartialFunction[LambdaExpression, LambdaExpression] ): Definition =
+      Definition( TermReplacement( definition.what, p ).asInstanceOf[Const], TermReplacement( definition.by, p ) )
+
+    def names( obj: Definition ) =
+      Set[VarOrConst]( obj.what ) union lambdaExpressionReplacer.names( obj.by )
+  }
+
   implicit def sequentReplaceable[I, O]( implicit ev: Replaceable[I, O] ): Replaceable[Sequent[I], Sequent[O]] =
     new Replaceable[Sequent[I], Sequent[O]] {
       override def replace( obj: Sequent[I], p: PartialFunction[LambdaExpression, LambdaExpression] ) =
@@ -77,6 +86,14 @@ private[expr] trait DefaultReplaceables {
       def names( obj: Seq[I] ) = obj flatMap { containedNames( _ ) } toSet
     }
 
+  implicit def setReplaceable[I, O]( implicit ev: Replaceable[I, O] ): Replaceable[Set[I], Set[O]] =
+    new Replaceable[Set[I], Set[O]] {
+      override def replace( obj: Set[I], p: PartialFunction[LambdaExpression, LambdaExpression] ) =
+        obj.map { TermReplacement( _, p ) }
+
+      def names( obj: Set[I] ) = obj flatMap { containedNames( _ ) }
+    }
+
   implicit def optionReplaceable[I, O]( implicit ev: Replaceable[I, O] ): Replaceable[Option[I], Option[O]] =
     new Replaceable[Option[I], Option[O]] {
       override def replace( obj: Option[I], p: PartialFunction[LambdaExpression, LambdaExpression] ) =
@@ -91,6 +108,14 @@ private[expr] trait DefaultReplaceables {
         ( ev1.replace( obj._1, p ), ev2.replace( obj._2, p ) )
 
       def names( obj: ( I1, I2 ) ) = containedNames( obj._1 ) union containedNames( obj._2 )
+    }
+
+  implicit def mapReplaceable[I1, I2, O1, O2]( implicit ev1: Replaceable[I1, O1], ev2: Replaceable[I2, O2] ): Replaceable[Map[I1, I2], Map[O1, O2]] =
+    new Replaceable[Map[I1, I2], Map[O1, O2]] {
+      override def replace( obj: Map[I1, I2], p: PartialFunction[LambdaExpression, LambdaExpression] ): Map[O1, O2] =
+        obj.map( TermReplacement( _, p ) )
+
+      def names( obj: Map[I1, I2] ) = containedNames( obj.toSeq )
     }
 
 }

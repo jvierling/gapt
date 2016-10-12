@@ -81,6 +81,8 @@ object isPrenex {
     case HOLAtom( _, _ )  => true
     case _                => throw new Exception( "ERROR: Unknow operator encountered while checking for prenex formula: " + this )
   }
+
+  def apply( sequent: HOLSequent ): Boolean = sequent.forall( isPrenex( _ ) )
 }
 
 /**
@@ -123,29 +125,26 @@ object containsQuantifierOnLogicalLevel {
 }
 
 object containsStrongQuantifier {
-  def apply( f: HOLFormula, pol: Boolean ): Boolean = f match {
+  def apply( f: HOLFormula, pol: Polarity ): Boolean = f match {
     case Top() | Bottom() => false
     case And( s, t )      => containsStrongQuantifier( s, pol ) || containsStrongQuantifier( t, pol )
     case Or( s, t )       => containsStrongQuantifier( s, pol ) || containsStrongQuantifier( t, pol )
     case Imp( s, t )      => containsStrongQuantifier( s, !pol ) || containsStrongQuantifier( t, pol )
     case Neg( s )         => containsStrongQuantifier( s, !pol )
-    case All( x, s )      => if ( pol == true ) true else containsStrongQuantifier( s, pol )
-    case Ex( x, s )       => if ( pol == false ) true else containsStrongQuantifier( s, pol )
+    case All( x, s )      => pol.inSuc || containsStrongQuantifier( s, pol )
+    case Ex( x, s )       => pol.inAnt || containsStrongQuantifier( s, pol )
     case HOLAtom( _, _ )  => false
-    case _                => throw new Exception( "Unhandled case!" )
   }
 
   def apply( s: HOLSequent ): Boolean =
-    s.antecedent.exists( x => containsStrongQuantifier( x, false ) ) ||
-      s.succedent.exists( x => containsStrongQuantifier( x, true ) )
+    s.polarizedElements.exists( ( apply: ( HOLFormula, Polarity ) => Boolean ).tupled )
 }
 
 object containsWeakQuantifier {
-  def apply( f: HOLFormula, pol: Boolean ): Boolean = containsStrongQuantifier( f, !pol )
+  def apply( f: HOLFormula, pol: Polarity ): Boolean = containsStrongQuantifier( f, !pol )
 
   def apply( s: HOLSequent ): Boolean =
-    s.antecedent.exists( x => containsWeakQuantifier( x, false ) ) ||
-      s.succedent.exists( x => containsWeakQuantifier( x, true ) )
+    s.polarizedElements.exists( ( apply: ( HOLFormula, Polarity ) => Boolean ).tupled )
 }
 
 object freeHOVariables {
@@ -161,25 +160,23 @@ object freeHOVariables {
 }
 
 /**
- * Return the list of all atoms *with duplicates* in the given argument.
- * TODO: why a list? why duplicates? why not a set?
+ * Return the list of all atoms in the given argument.
  */
 object atoms {
-  def apply( f: HOLFormula ): List[HOLFormula] = f match {
-    case Neg( f )         => apply( f )
-    case And( f1, f2 )    => apply( f1 ) ++ apply( f2 )
-    case Or( f1, f2 )     => apply( f1 ) ++ apply( f2 )
-    case Imp( f1, f2 )    => apply( f1 ) ++ apply( f2 )
-    case Ex( v, f )       => apply( f )
-    case All( v, f )      => apply( f )
-    case Bottom() | Top() => List()
-    case HOLAtom( _, _ )  => List( f )
+  def apply( f: HOLFormula ): Set[HOLAtom] = f match {
+    case f: HOLAtom       => Set( f )
+    case And( x, y )      => apply( x ) union apply( y )
+    case Or( x, y )       => apply( x ) union apply( y )
+    case Imp( x, y )      => apply( x ) union apply( y )
+    case Neg( x )         => apply( x )
+    case Top() | Bottom() => Set()
+    case Ex( x, y )       => apply( y )
+    case All( x, y )      => apply( y )
   }
 
-  def apply( s: HOLSequent ): List[HOLFormula] = {
-    val all = s.antecedent ++ s.succedent
-    all.foldLeft( List[HOLFormula]() ) { case ( acc, f ) => apply( f ) ++ acc }
-  }
+  def apply( f: FOLFormula ): Set[FOLAtom] = atoms( f: HOLFormula ).asInstanceOf[Set[FOLAtom]]
+
+  def apply( s: HOLSequent ): Set[HOLAtom] = atoms( s.toImplication )
 }
 
 /**
@@ -318,7 +315,7 @@ object removeQuantifiers {
    * Removes the leading n quantifiers of a formula.
    * It's only well-defined for formulas that begin with at least n quantifiers.
    *
-   * @param formula A Formula
+   * @param f A Formula
    * @param n Number of quantifiers to be removed
    * @throws exception in case f does not start with n quantifiers.
    * @return form without the first n quantifiers
@@ -509,3 +506,4 @@ object formulaToSequent {
     case _           => formula +: Sequent()
   }
 }
+

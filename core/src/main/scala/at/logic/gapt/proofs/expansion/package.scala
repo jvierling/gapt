@@ -1,6 +1,6 @@
 package at.logic.gapt.proofs
 
-import at.logic.gapt.expr.{ ClosedUnderReplacement, ClosedUnderSub, LambdaExpression, Replaceable, containedNames }
+import at.logic.gapt.expr.{ ClosedUnderReplacement, ClosedUnderSub, LambdaExpression, Polarity, containedNames }
 
 package object expansion {
   type ExpansionSequent = Sequent[ExpansionTree]
@@ -15,7 +15,7 @@ package object expansion {
     def shallow = sequent map { _.shallow }
     def deep = sequent map { _.deep }
 
-    def toDisjunction( polarity: Boolean ) =
+    def toDisjunction( polarity: Polarity ) =
       sequent.map( ETNeg( _ ), identity ).
         elements.
         reduceOption( ETOr( _, _ ) ).
@@ -32,7 +32,7 @@ package object expansion {
     def names( proof: ExpansionTree ) =
       proof.subProofs flatMap {
         case p: ETDefinition       => containedNames( p.shallow ) ++ containedNames( p.definedExpr )
-        case p: ETDefinedAtom      => containedNames( p.shallow ) ++ containedNames( p.definition )
+        case p: ETDefinedAtom      => containedNames( p.shallow ) ++ containedNames( p.definedExpr )
         case p: ETSkolemQuantifier => containedNames( p.shallow ) ++ containedNames( p.skolemDef )
         case p: ETStrongQuantifier => containedNames( p.shallow ) + p.eigenVariable
         case p                     => containedNames( p.shallow )

@@ -1,6 +1,7 @@
 package at.logic.gapt.proofs.lk
 
 import at.logic.gapt.expr._
+import at.logic.gapt.proofs.Ant
 
 object DefinitionElimination {
   def apply( dmap: Map[_ <: LambdaExpression, _ <: LambdaExpression] ): DefinitionElimination =
@@ -110,14 +111,13 @@ class DefinitionElimination private ( dmap: Map[LambdaExpression, LambdaExpressi
         sequent. We use exchange macro rules to artificially replicate the movement of formulas that the definition
          rule would have performed.*/
 
-    case DefinitionLeftRule( subProof, aux, main ) =>
+    case DefinitionLeftRule( subProof, aux, _, _ ) =>
       ExchangeLeftMacroRule( apply( subProof ), aux )
 
-    case DefinitionRightRule( subProof, aux, main ) =>
+    case DefinitionRightRule( subProof, aux, _, _ ) =>
       ExchangeRightMacroRule( apply( subProof ), aux )
 
-    case InductionRule( cases, main ) =>
-      InductionRule( cases map { cs => cs.copy( proof = apply( cs.proof ) ) }, apply( main ) )
-
+    case InductionRule( cases, main, term ) =>
+      InductionRule( cases map { cs => cs.copy( proof = apply( cs.proof ) ) }, apply( main ).asInstanceOf[Abs], apply( term ) )
   }
 }
