@@ -5,6 +5,7 @@ import at.logic.gapt.expr.hol.{ CNFp, containsStrongQuantifier, isPrenex }
 import at.logic.gapt.proofs.OccConnector
 import cats.syntax.flatMap._
 
+import scala.reflect.ClassTag
 import scalaz.{ -\/, \/- }
 
 /**
@@ -16,11 +17,16 @@ object Traversal {
   type ProofWithConnector = ( LKProof, OccConnector[HOLFormula] )
   type ProofTrans[T <: LKProof] = T => ProofWithConnector
 
-  //TODO: Why does this not work in general?
-  /*implicit def lift2LKProof[T<: LKProof]( f: ProofTrans[T] ): ProofTrans[LKProof] = {
+  /**
+   * Lifts a transformation from one that only works on proofs of type T to one that works on any LKProof.
+   *
+   * @param f A proof transformation defined on T.
+   * @return A new proof transformation defined on LKProofs that is equal to f on T and the identity otherwise.
+   */
+  implicit def lift2LKProof[T <: LKProof: ClassTag]( f: ProofTrans[T] ): ProofTrans[LKProof] = {
     case t: T => f( t )
     case p    => ( p, OccConnector( p.endSequent ) )
-  }*/
+  }
 
   /**
    * Applies a proof transformation to the subproofs of the given proofs and then reconstructs it.
@@ -193,17 +199,6 @@ object Traversal {
  */
 object explicitTheoryAxioms {
   import Traversal._
-
-  /**
-   * Lifts a transformation from one that only works on TheoryAxioms to one that works on any LKProof.
-   *
-   * @param f A proof transformation defined on TheoryAxioms.
-   * @return A new proof transformation defined on LKProofs that is equal to f on TheoryAxioms and the identity otherwise.
-   */
-  implicit def lift2LKProof( f: ProofTrans[TheoryAxiom] ): ProofTrans[LKProof] = {
-    case p: TheoryAxiom => f( p )
-    case p: LKProof     => ( p, OccConnector( p.endSequent ) )
-  }
 
   def visitTheoryAxiom( formulas: Seq[HOLFormula] ): ProofTrans[TheoryAxiom] = { proof =>
 
