@@ -5,7 +5,7 @@ import at.logic.gapt.formats.latex.LatexExporter
 import at.logic.gapt.formats.llk.ExtendedProofDatabase
 import at.logic.gapt.proofs.ceres.Struct
 import at.logic.gapt.proofs.expansion.{ ExpansionProof, ExpansionProofWithCut }
-import at.logic.gapt.proofs.lk.LKProof
+import at.logic.gapt.proofs.lk.{ LKProof, Traversal }
 import at.logic.gapt.proofs.{ HOLSequent, SequentProof }
 import at.logic.gapt.utils.Not
 
@@ -88,4 +88,7 @@ package object prooftool {
       case _        => throw new IllegalArgumentException
     }
   }
+
+  implicit val ProofWithConnectorViewable: ProoftoolViewable[Traversal.ProofWithConnector] =
+    instance { ( x, name ) => ProoftoolViewable[LKProof].display( x._1, name ) }
 }
