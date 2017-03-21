@@ -38,7 +38,7 @@ trait ExpansionTree extends DagProof[ExpansionTree] {
  */
 trait UnaryExpansionTree extends ExpansionTree {
   def child: ExpansionTree
-  def immediateSubProofs = Seq( child )
+  def immediateSubProofs = Vector( child )
 }
 
 /**
@@ -47,7 +47,7 @@ trait UnaryExpansionTree extends ExpansionTree {
 trait BinaryExpansionTree extends ExpansionTree {
   def child1: ExpansionTree
   def child2: ExpansionTree
-  def immediateSubProofs = Seq( child1, child2 )
+  def immediateSubProofs = Vector( child1, child2 )
 }
 
 /**
@@ -86,7 +86,7 @@ object ETMerge {
 case class ETWeakening( formula: Formula, polarity: Polarity ) extends ExpansionTree {
   def shallow = formula
   def deep = if ( polarity.inSuc ) Bottom() else Top()
-  def immediateSubProofs = Seq()
+  def immediateSubProofs = Vector()
 }
 
 /**
@@ -96,7 +96,7 @@ case class ETWeakening( formula: Formula, polarity: Polarity ) extends Expansion
 case class ETAtom( atom: Atom, polarity: Polarity ) extends ExpansionTree {
   def shallow = atom
   def deep = atom
-  def immediateSubProofs = Seq()
+  def immediateSubProofs = Vector()
 }
 
 /**
@@ -105,7 +105,7 @@ case class ETAtom( atom: Atom, polarity: Polarity ) extends ExpansionTree {
 case class ETTop( polarity: Polarity ) extends ExpansionTree {
   val shallow = Top()
   def deep = Top()
-  def immediateSubProofs = Seq()
+  def immediateSubProofs = Vector()
 }
 
 /**
@@ -114,7 +114,7 @@ case class ETTop( polarity: Polarity ) extends ExpansionTree {
 case class ETBottom( polarity: Polarity ) extends ExpansionTree {
   val shallow = Bottom()
   def deep = Bottom()
-  def immediateSubProofs = Seq()
+  def immediateSubProofs = Vector()
 }
 
 /**
@@ -202,7 +202,7 @@ case class ETWeakQuantifier( shallow: Formula, instances: Map[Expr, ExpansionTre
     if ( polarity.inSuc ) Or( instances.values map { _.deep } )
     else And( instances.values map { _.deep } )
 
-  def immediateSubProofs = instances.values.toSeq
+  def immediateSubProofs = instances.values.toVector
   private lazy val product = Seq( shallow ) ++ instances.view.flatMap { case ( selectedTerm, child ) => Seq( selectedTerm, child ) }
   override def productArity = product.size
   override def productElement( n: Int ) = product( n )

@@ -21,10 +21,10 @@ case class AvatarSplit( subProof: ResolutionProof, indices: Set[SequentIndex], c
   require( freeVariables( thisComponent ) intersect freeVariables( rest ) isEmpty )
   require( thisComponent isSubMultisetOf component.clause )
 
-  override def auxIndices = Seq( indices.toSeq )
+  override def auxIndices = Vector( indices.toList )
   override def mainFormulaSequent = Sequent()
   override val assertions = subProof.assertions ++ component.assertion distinct
-  override def immediateSubProofs = Seq( subProof )
+  override def immediateSubProofs = Vector( subProof )
   override def introducedDefinitions = component.inducedDefinitions
 }
 object AvatarSplit {
@@ -84,7 +84,7 @@ trait AvatarDefinition {
 abstract class AvatarGeneralNonGroundComp extends AvatarDefinition {
   def atom: Atom
   def definition: Formula
-  def vars: Seq[Var]
+  def vars: List[Var]
 
   require( atom.isInstanceOf[HOLAtomConst] )
   protected val AvatarNonGroundComp.DefinitionFormula( canonVars, canonicalClause ) = definition
@@ -105,11 +105,11 @@ abstract class AvatarGeneralNonGroundComp extends AvatarDefinition {
 
   val componentClause = subst( canonicalClause )
 }
-case class AvatarNonGroundComp( atom: Atom, definition: Formula, vars: Seq[Var] ) extends AvatarGeneralNonGroundComp {
+case class AvatarNonGroundComp( atom: Atom, definition: Formula, vars: List[Var] ) extends AvatarGeneralNonGroundComp {
   def assertion = Sequent() :+ atom
   def clause = componentClause
 }
-case class AvatarNegNonGroundComp( atom: Atom, definition: Formula, vars: Seq[Var], idx: SequentIndex ) extends AvatarGeneralNonGroundComp {
+case class AvatarNegNonGroundComp( atom: Atom, definition: Formula, vars: List[Var], idx: SequentIndex ) extends AvatarGeneralNonGroundComp {
   require( freeVariables( componentClause( idx ) ).isEmpty )
   def assertion = atom +: Sequent()
   val propAtom = componentClause( idx )
@@ -124,12 +124,12 @@ object AvatarNonGroundComp {
 
   object DefinitionFormula {
     def apply( clause: HOLSequent ): Formula =
-      apply( freeVariables( clause ).toSeq, clause )
+      apply( freeVariables( clause ).toList, clause )
     def apply( vars: Seq[Var], clause: HOLSequent ) = {
       require( vars.toSet subsetOf freeVariables( clause ) )
       All.Block( vars, clause.toDisjunction )
     }
-    def unapply( f: Formula ): Some[( Seq[Var], HOLSequent )] = f match {
+    def unapply( f: Formula ): Some[( List[Var], HOLSequent )] = f match {
       case All.Block( vars, litDisj ) =>
         val Or.nAry( lits ) = litDisj
         Some( ( vars, lits.flatMapS {
@@ -145,7 +145,7 @@ object AvatarNonGroundComp {
 }
 case class AvatarGroundComp( atom: Atom, polarity: Polarity ) extends AvatarDefinition {
   require( freeVariables( atom ).isEmpty )
-  def assertion = Sequent( Seq( atom -> polarity ) )
+  def assertion = Sequent( List( atom -> polarity ) )
   def clause = assertion
   def inducedDefinitions = Map()
 }
@@ -161,7 +161,7 @@ case class AvatarGroundComp( atom: Atom, polarity: Polarity ) extends AvatarDefi
 case class AvatarContradiction( subProof: ResolutionProof ) extends LocalResolutionRule {
   override val assertions = Sequent()
   def mainFormulaSequent = subProof.assertions
-  def auxIndices = Seq( Seq() )
-  def immediateSubProofs = Seq( subProof )
+  def auxIndices = Vector( Nil )
+  def immediateSubProofs = Vector( subProof )
 }
 

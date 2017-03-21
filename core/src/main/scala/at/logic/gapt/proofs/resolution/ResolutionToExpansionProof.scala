@@ -4,6 +4,7 @@ import at.logic.gapt.expr._
 import at.logic.gapt.proofs.{ HOLSequent, Sequent }
 import at.logic.gapt.proofs.expansion._
 import at.logic.gapt.provers.sat.Sat4j
+import cats.implicits._
 
 import scala.collection.mutable
 
@@ -64,7 +65,7 @@ object ResolutionToExpansionProof {
         ETMerge( f, Polarity.InAntecedent, set.map( _._2.elements.head ) ) +: Sequent()
 
       case ( Input( seq ) ) =>
-        val fvs = freeVariables( seq ).toSeq
+        val fvs = freeVariables( seq ).toList
         val sh = All.Block( fvs, seq.toDisjunction )
         ETWeakQuantifierBlock( sh, fvs.size,
           for ( ( subst, es ) <- set ) yield subst( fvs ) -> es.toDisjunction( Polarity.Negative ) ) +: Sequent()

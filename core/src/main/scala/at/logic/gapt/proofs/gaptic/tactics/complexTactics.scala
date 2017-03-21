@@ -11,7 +11,7 @@ import at.logic.gapt.provers.escargot.Escargot
 import at.logic.gapt.provers.prover9.Prover9
 import at.logic.gapt.provers.viper.aip.AnalyticInductionProver
 import at.logic.gapt.provers.viper.aip.axioms._
-import cats.syntax.all._
+import cats.implicits._
 
 /**
  * Performs backwards chaining:

@@ -274,7 +274,7 @@ object Context {
 
   case class ProofDefinitions( components: Map[String, Set[( Expr, LKProof )]] ) {
     def +( name: String, referencedExpression: Expr, referencedProof: LKProof ) =
-      copy( components + ( ( name, ( components.getOrElse( name, Set() ) + ( ( referencedExpression, referencedProof ) ) ) ) ) )
+      copy( components + ( ( name, components.getOrElse( name, Set() ) + ( ( referencedExpression, referencedProof ) ) ) ) )
 
   }
   implicit val ProofDefinitionsFacet: Facet[ProofDefinitions] = Facet( ProofDefinitions( Map[String, Set[( Expr, LKProof )]]() ) )

@@ -37,7 +37,7 @@ object AndLeftMacroRule extends ConvenienceConstructor( "AndLeftMacroRule" ) {
    * @return An LKProof and an SequentConnector connecting its end sequent with the end sequent of subProof.
    */
   def withSequentConnector( subProof: LKProof, leftConjunct: IndexOrFormula, rightConjunct: IndexOrFormula ): ( AndLeftRule, SequentConnector ) = {
-    val ( _, indices, _, _ ) = findIndicesOrFormulasInPremise( subProof.endSequent )( Seq( leftConjunct, rightConjunct ), Seq() )
+    val ( _, indices, _, _ ) = findIndicesOrFormulasInPremise( subProof.endSequent )( List( leftConjunct, rightConjunct ), Nil )
 
     indices match {
       case -1 +: -1 +: _ => // Neither conjunct has been found. We don't allow this case.
@@ -93,7 +93,7 @@ object OrRightMacroRule extends ConvenienceConstructor( "OrRightMacroRule" ) {
    * @return An LKProof and an SequentConnector connecting its end sequent with the end sequent of subProof.
    */
   def withSequentConnector( subProof: LKProof, leftDisjunct: IndexOrFormula, rightDisjunct: IndexOrFormula ): ( OrRightRule, SequentConnector ) = {
-    val ( _, _, _, indices ) = findIndicesOrFormulasInPremise( subProof.endSequent )( Seq(), Seq( leftDisjunct, rightDisjunct ) )
+    val ( _, _, _, indices ) = findIndicesOrFormulasInPremise( subProof.endSequent )( Nil, List( leftDisjunct, rightDisjunct ) )
 
     indices match {
       case -1 +: -1 +: _ => // Neither disjunct has been found. We don't allow this case.
@@ -103,14 +103,14 @@ object OrRightMacroRule extends ConvenienceConstructor( "OrRightMacroRule" ) {
         val ld = ( leftDisjunct: @unchecked ) match { case Right( f ) => f } // This match cannot fail: if the index of leftDisjunct is -1, it cannot have been passed as an index.
         val subProof_ = WeakeningRightRule( subProof, ld )
         val oc = subProof_.getSequentConnector
-        val proof = OrRightRule( subProof_, subProof_.mainIndices( 0 ), oc.child( Suc( i ) ) )
+        val proof = OrRightRule( subProof_, subProof_.mainIndices.head, oc.child( Suc( i ) ) )
         ( proof, proof.getSequentConnector * oc )
 
       case i +: -1 +: _ => // The left conjunct has been found at indext Suc(i).
         val rd = ( rightDisjunct: @unchecked ) match { case Right( f ) => f } // This match cannot fail: if the index of rightDisjunct is -1, it cannot have been passed as an index.
         val subProof_ = WeakeningRightRule( subProof, rd )
         val oc = subProof_.getSequentConnector
-        val proof = OrRightRule( subProof_, oc.child( Suc( i ) ), subProof_.mainIndices( 0 ) )
+        val proof = OrRightRule( subProof_, oc.child( Suc( i ) ), subProof_.mainIndices.head )
         ( proof, proof.getSequentConnector * oc )
 
       case _ => // Both disjuncts have been found. Simply construct the inference.
@@ -149,7 +149,7 @@ object ImpRightMacroRule extends ConvenienceConstructor( "ImpRightMacroRule" ) {
    * @return An LKProof and an SequentConnector connecting its end sequent with the end sequent of subProof.
    */
   def withSequentConnector( subProof: LKProof, impPremise: IndexOrFormula, impConclusion: IndexOrFormula ): ( ImpRightRule, SequentConnector ) = {
-    val ( _, indicesAnt, _, indicesSuc ) = findIndicesOrFormulasInPremise( subProof.endSequent )( Seq( impPremise ), Seq( impConclusion ) )
+    val ( _, indicesAnt, _, indicesSuc ) = findIndicesOrFormulasInPremise( subProof.endSequent )( List( impPremise ), List( impConclusion ) )
 
     ( indicesAnt.head, indicesSuc.head ) match {
       case ( -1, -1 ) => // Neither aux formula has been found. We don't allow this case.
@@ -159,14 +159,14 @@ object ImpRightMacroRule extends ConvenienceConstructor( "ImpRightMacroRule" ) {
         val ip = ( impPremise: @unchecked ) match { case Right( f ) => f } // This match cannot fail: if the index of the premise is -1, it cannot have been passed as an index.
         val subProof_ = WeakeningLeftRule( subProof, ip )
         val oc = subProof_.getSequentConnector
-        val proof = ImpRightRule( subProof_, subProof_.mainIndices( 0 ), oc.child( Suc( i ) ) )
+        val proof = ImpRightRule( subProof_, subProof_.mainIndices.head, oc.child( Suc( i ) ) )
         ( proof, proof.getSequentConnector * oc )
 
       case ( i, -1 ) => // The premise has been found at indext Ant(i).
         val ic = ( impConclusion: @unchecked ) match { case Right( f ) => f } // This match cannot fail: if the index of the conclusion is -1, it cannot have been passed as an index.
         val subProof_ = WeakeningRightRule( subProof, ic )
         val oc = subProof_.getSequentConnector
-        val proof = ImpRightRule( subProof_, oc.child( Ant( i ) ), subProof_.mainIndices( 0 ) )
+        val proof = ImpRightRule( subProof_, oc.child( Ant( i ) ), subProof_.mainIndices.head )
         ( proof, proof.getSequentConnector * oc )
 
       case _ => // Both aux formulas have been found. Simply construct the inference.
@@ -185,7 +185,6 @@ object EqualityLeftMacroRule extends ConvenienceConstructor( "EqualityLeftMacroR
    * @param subProof The subproof.
    * @param equation Index of the equation or the equation itself.
    * @param auxFormula Index of the aux formula or the formula itself.
-   * @param pos The positions of the term to be replaced within the aux formula.
    * @return
    */
   def apply( subProof: LKProof, equation: IndexOrFormula, auxFormula: IndexOrFormula, con: Abs ): EqualityLeftRule = withSequentConnector( subProof, equation, auxFormula, con )._1
@@ -197,13 +196,12 @@ object EqualityLeftMacroRule extends ConvenienceConstructor( "EqualityLeftMacroR
    * @param subProof The subproof.
    * @param equation Index of the equation or the equation itself.
    * @param auxFormula Index of the aux formula or the formula itself.
-   * @param pos The positions of the term to be replaced within the aux formula.
    * @return An LKProof and an SequentConnector connecting its end sequent with the end sequent of subProof.
    */
   def withSequentConnector( subProof: LKProof, equation: IndexOrFormula, auxFormula: IndexOrFormula, con: Abs ): ( EqualityLeftRule, SequentConnector ) = {
-    val ( _, indices, _, _ ) = findIndicesOrFormulasInPremise( subProof.endSequent )( Seq( equation, auxFormula ), Seq() )
+    val ( _, indices, _, _ ) = findIndicesOrFormulasInPremise( subProof.endSequent )( List( equation, auxFormula ), Nil )
 
-    ( indices( 0 ), indices( 1 ) ) match {
+    ( indices.head, indices( 1 ) ) match {
       case ( _, -1 ) => // The aux formula has not been found.  We don't allow this case.
         throw LKRuleCreationException( s"Aux formula has not been found in succedent of ${subProof.endSequent}." )
 
@@ -211,7 +209,7 @@ object EqualityLeftMacroRule extends ConvenienceConstructor( "EqualityLeftMacroR
         val e = ( equation: @unchecked ) match { case Right( f ) => f } // This match cannot fail: if the index of the equation is -1, it cannot have been passed as an index.
         val subProof_ = WeakeningLeftRule( subProof, e )
         val oc = subProof_.getSequentConnector
-        val proof = EqualityLeftRule( subProof_, subProof_.mainIndices( 0 ), oc.child( Ant( i ) ), con )
+        val proof = EqualityLeftRule( subProof_, subProof_.mainIndices.head, oc.child( Ant( i ) ), con )
         ( proof, proof.getSequentConnector * oc )
 
       case ( _, _ ) => // Both equation and aux formula have been found. Simply construct the inference.
@@ -230,7 +228,6 @@ object EqualityRightMacroRule extends ConvenienceConstructor( "EqualityRightMacr
    * @param subProof The subproof.
    * @param equation Index of the equation or the equation itself.
    * @param auxFormula Index of the aux formula or the formula itself.
-   * @param pos The positions of the term to be replaced within the aux formula.
    * @return
    */
   def apply( subProof: LKProof, equation: IndexOrFormula, auxFormula: IndexOrFormula, con: Abs ): EqualityRightRule = withSequentConnector( subProof, equation, auxFormula, con )._1
@@ -242,13 +239,12 @@ object EqualityRightMacroRule extends ConvenienceConstructor( "EqualityRightMacr
    * @param subProof The subproof.
    * @param equation Index of the equation or the equation itself.
    * @param auxFormula Index of the aux formula or the formula itself.
-   * @param pos The positions of the term to be replaced within the aux formula.
    * @return An LKProof and an SequentConnector connecting its end sequent with the end sequent of subProof.
    */
   def withSequentConnector( subProof: LKProof, equation: IndexOrFormula, auxFormula: IndexOrFormula, con: Abs ): ( EqualityRightRule, SequentConnector ) = {
-    val ( _, indicesAnt, _, indicesSuc ) = findIndicesOrFormulasInPremise( subProof.endSequent )( Seq( equation ), Seq( auxFormula ) )
+    val ( _, indicesAnt, _, indicesSuc ) = findIndicesOrFormulasInPremise( subProof.endSequent )( List( equation ), List( auxFormula ) )
 
-    ( indicesAnt( 0 ), indicesSuc( 0 ) ) match {
+    ( indicesAnt.head, indicesSuc.head ) match {
       case ( _, -1 ) => // The aux formula has not been found.  We don't allow this case.
         throw LKRuleCreationException( s"Aux formula has not been found in succedent of ${subProof.endSequent}." )
 
@@ -256,7 +252,7 @@ object EqualityRightMacroRule extends ConvenienceConstructor( "EqualityRightMacr
         val e = ( equation: @unchecked ) match { case Right( f ) => f } // This match cannot fail: if the index of the equation is -1, it cannot have been passed as an index.
         val subProof_ = WeakeningLeftRule( subProof, e )
         val oc = subProof_.getSequentConnector
-        val proof = EqualityRightRule( subProof_, subProof_.mainIndices( 0 ), oc.child( Suc( i ) ), con )
+        val proof = EqualityRightRule( subProof_, subProof_.mainIndices.head, oc.child( Suc( i ) ), con )
         ( proof, proof.getSequentConnector * oc )
 
       case ( _, _ ) => // Both equation and aux formula have been found. Simply construct the inference.
@@ -589,9 +585,9 @@ object ContractionLeftMacroRule {
    * @param occs A list of occurrences of a Formula in the antecedent of s1.
    * @return A proof ending with as many contraction rules as necessary to contract occs into a single occurrence and an SequentConnector.
    */
-  def withSequentConnector( p: LKProof, occs: Seq[SequentIndex] ): ( LKProof, SequentConnector ) = occs.sorted.reverse match {
-    case Seq() | _ +: Seq() => ( p, SequentConnector( p.endSequent ) )
-    case occ1 +: rest =>
+  def withSequentConnector( p: LKProof, occs: Seq[SequentIndex] ): ( LKProof, SequentConnector ) = occs.sorted.reverse.toList match {
+    case Nil | _ :: Nil => ( p, SequentConnector( p.endSequent ) )
+    case occ1 :: rest =>
       val occ2 = rest.head
       val ( subProof, subConnector ) = withSequentConnector( p, rest )
       val proof = ContractionLeftRule( subProof, subConnector.child( occ1 ), subConnector.child( occ2 ) )
@@ -644,9 +640,9 @@ object ContractionRightMacroRule {
    * @param occs A list of occurrences of a formula in the succedent of s1.
    * @return A proof ending with as many contraction rules as necessary to contract occs into a single occurrence and an SequentConnector.
    */
-  def withSequentConnector( p: LKProof, occs: Seq[SequentIndex] ): ( LKProof, SequentConnector ) = occs.sorted.reverse match {
-    case Seq() | _ +: Seq() => ( p, SequentConnector( p.endSequent ) )
-    case occ1 +: rest =>
+  def withSequentConnector( p: LKProof, occs: Seq[SequentIndex] ): ( LKProof, SequentConnector ) = occs.sorted.reverse.toList match {
+    case Nil | _ :: Nil => ( p, SequentConnector( p.endSequent ) )
+    case occ1 :: rest =>
       val occ2 = rest.head
       val ( subProof, subConnector ) = withSequentConnector( p, rest )
       val proof = ContractionRightRule( subProof, subConnector.child( occ1 ), subConnector.child( occ2 ) )
@@ -1073,7 +1069,6 @@ object ParamodulationLeftRule extends ConvenienceConstructor( "ParamodulationLef
    * @param eq The index of the equation or the equation itself.
    * @param rightSubProof The right subproof π2.
    * @param aux The index of the aux formula or the aux formula itself.
-   * @param pos The positions of the term to be replaced within A.
    * @return
    */
   def apply(
@@ -1274,7 +1269,7 @@ object FOTheoryMacroRule {
     }
   def option( sequent: HOLSequent, prover: ResolutionProver = Escargot )( implicit ctx: Context ): Option[LKProof] = {
     import at.logic.gapt.proofs.resolution._
-    val axioms = ctx.axioms.toSet
+    val axioms = ctx.axioms
     val nameGen = rename.awayFrom( containedNames( axioms + sequent ) )
     val grounding = freeVariables( sequent ).map( v => v -> Const( nameGen.fresh( v.name ), v.ty ) )
     val cnf = axioms ++ Substitution( grounding )( sequent ).map( Sequent() :+ _, _ +: Sequent() ).elements
@@ -1364,11 +1359,11 @@ object NaturalNumberInductionRule extends ConvenienceConstructor( "NaturalNumber
       throw LKRuleCreationException( "Cannot determine induction variable." )
     }
 
-    val baseCase = InductionCase( leftSubProof, FOLConst( "0" ), Seq(), Seq(), aux1 )
-    val stepCase = InductionCase( rightSubProof, FOLFunctionConst( "s", 1 ), Seq( aux2 ), Seq( x ), aux3 )
+    val baseCase = InductionCase( leftSubProof, FOLConst( "0" ), Nil, Nil, aux1 )
+    val stepCase = InductionCase( rightSubProof, FOLFunctionConst( "s", 1 ), List( aux2 ), List( x ), aux3 )
 
     val All( y, a ) = mainFormula
-    ForallRightRule( InductionRule( Seq( baseCase, stepCase ), Abs( y, a ), y ), mainFormula, y )
+    ForallRightRule( InductionRule( List( baseCase, stepCase ), Abs( y, a ), y ), mainFormula, y )
   }
 
   /**
@@ -1394,10 +1389,10 @@ object NaturalNumberInductionRule extends ConvenienceConstructor( "NaturalNumber
    */
   def apply( leftSubProof: LKProof, aux1: IndexOrFormula, rightSubProof: LKProof, aux2: IndexOrFormula, aux3: IndexOrFormula, mainFormula: FOLFormula ): ForallRightRule = {
     val ( leftPremise, rightPremise ) = ( leftSubProof.endSequent, rightSubProof.endSequent )
-    val ( _, leftIndicesSuc ) = findAndValidate( leftPremise )( Seq(), Seq( aux1 ) )
-    val ( rightIndicesAnt, rightIndicesSuc ) = findAndValidate( rightPremise )( Seq( aux2 ), Seq( aux3 ) )
+    val ( _, leftIndicesSuc ) = findAndValidate( leftPremise )( Nil, List( aux1 ) )
+    val ( rightIndicesAnt, rightIndicesSuc ) = findAndValidate( rightPremise )( List( aux2 ), List( aux3 ) )
 
-    apply( leftSubProof, Suc( leftIndicesSuc( 0 ) ), rightSubProof, Ant( rightIndicesAnt( 0 ) ), Suc( rightIndicesSuc( 0 ) ), mainFormula )
+    apply( leftSubProof, Suc( leftIndicesSuc.head ), rightSubProof, Ant( rightIndicesAnt.head ), Suc( rightIndicesSuc.head ), mainFormula )
   }
 }
 

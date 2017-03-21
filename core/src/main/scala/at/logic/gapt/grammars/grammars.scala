@@ -1,6 +1,7 @@
 package at.logic.gapt.grammars
 import at.logic.gapt.expr._
 import at.logic.gapt.formats.babel.{ BabelExporter, MapBabelSignature }
+import cats.implicits._
 
 private class VtratgExporter( unicode: Boolean, vtratg: VTRATG )
     extends BabelExporter( unicode, vtratg.babelSignature ) {
@@ -10,12 +11,12 @@ private class VtratgExporter( unicode: Boolean, vtratg: VTRATG )
   def export(): String = {
     val ntDecl = group( "Non-terminal vectors:" <> nest( line <> csep(
       vtratg.nonTerminals.toList map { nt =>
-        "(" <> hsep( nt map { show( _, false, Set(), Map(), prio.max )._1 }, "," ) <> ")"
+        "(" <> hsep( nt map { show( _, knownType = false, Set(), Map(), prio.max )._1 }, "," ) <> ")"
       }
     ) ) )
 
     val tDecl = group( "Terminals:" <> nest( line <> csep(
-      vtratg.terminals.toList.sortBy { _.name } map { show( _, false, Set(), Map(), prio.max )._1 }
+      vtratg.terminals.toList.sortBy { _.name } map { show( _, knownType = false, Set(), Map(), prio.max )._1 }
     ) ) )
 
     val knownTypes = vtratg.terminals.map { c => c.name -> c }.toMap
@@ -24,8 +25,8 @@ private class VtratgExporter( unicode: Boolean, vtratg: VTRATG )
       sortBy { case ( as, ts ) => ( vtratg.nonTerminals.indexOf( as ), ts.toString ) }
       map { p =>
         group( csep( p.zipped map ( ( a, t ) =>
-          group( show( a, false, Set(), knownTypes, prio.impl )._1 </> nest( "→" </>
-            show( t, true, Set(), knownTypes, prio.impl )._1 ) ) ) ) ) <> line
+          group( show( a, knownType = false, Set(), knownTypes, prio.impl )._1 </> nest( "→" </>
+            show( t, knownType = true, Set(), knownTypes, prio.impl )._1 ) ) ) ) ) <> line
       } )
 
     pretty( group( ntDecl <> line <> tDecl <> line <> line <> prods ) ).layout

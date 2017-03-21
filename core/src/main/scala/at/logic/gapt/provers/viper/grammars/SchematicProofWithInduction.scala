@@ -8,13 +8,14 @@ import at.logic.gapt.proofs.lk.{ LKProof, TheoryAxiom, WeakeningMacroRule, clean
 import at.logic.gapt.proofs.{ Context, HOLSequent, Sequent }
 import at.logic.gapt.provers.{ OneShotProver, Prover }
 import at.logic.gapt.utils.linearizeStrictPartialOrder
+import cats.implicits._
 
 trait SchematicProofWithInduction {
   def endSequent: HOLSequent
   def solutionCondition: Formula
-  def lkProof( solution: Seq[Expr], prover: Prover ): LKProof
+  def lkProof( solution: List[Expr], prover: Prover ): LKProof
 
-  def paramVars: Seq[Var]
+  def paramVars: List[Var]
   def generatedLanguage( inst: Seq[Expr] ): Set[Formula]
 }
 

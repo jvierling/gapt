@@ -10,7 +10,7 @@ import at.logic.gapt.proofs.{ FOLClause, HOLClause, HOLSequent, Sequent }
 import scala.collection.mutable
 
 object TptpProofParser {
-  def parse( out: InputFile, labelledCNF: Map[String, Seq[FOLClause]] ): RefutationSketch =
+  def parse( out: InputFile, labelledCNF: Map[String, List[FOLClause]] ): RefutationSketch =
     parseSteps( TptpParser.parse( out ), labelledCNF )
 
   def removeStrongQuants( tptpFile: TptpFile ): TptpFile = {
@@ -53,30 +53,30 @@ object TptpProofParser {
     case other => other
   } )
 
-  def extractEndSequentAndCNF( stepList: TptpFile ): ( Sequent[FOLFormula], Map[String, Seq[FOLClause]] ) = {
+  def extractEndSequentAndCNF( stepList: TptpFile ): ( Sequent[FOLFormula], Map[String, List[FOLClause]] ) = {
     var endSequent = Sequent[FOLFormula]()
-    val labelledCNF = mutable.Map[String, Seq[FOLClause]]().withDefaultValue( Seq() )
+    val labelledCNF = mutable.Map[String, List[FOLClause]]().withDefaultValue( Nil )
 
     stepList.inputs foreach {
       case AnnotatedFormula( "fof", _, "conjecture", formula: FOLFormula, Seq( TptpTerm( "file", _, TptpTerm( label ) ) ) ) =>
         endSequent :+= formula
-        labelledCNF( label ) ++= CNFn( formula ).toSeq
+        labelledCNF( label ) ++= CNFn( formula ).toList
       case AnnotatedFormula( lang, _, _, formula: FOLFormula, Seq( TptpTerm( "file", _, TptpTerm( label ) ) ) ) =>
         endSequent +:= ( if ( lang == "cnf" ) universalClosure( formula ) else formula )
-        labelledCNF( label ) ++= CNFp( formula ).toSeq
+        labelledCNF( label ) ++= CNFp( formula ).toList
       case _ =>
     }
 
     endSequent -> labelledCNF.toMap
   }
 
-  def getParents( justification: GeneralTerm ): Seq[String] = justification match {
-    case TptpTerm( "file", _, _ )                                   => Seq()
-    case TptpTerm( "inference", _, _, GeneralList( parents @ _* ) ) => parents flatMap getParents
-    case TptpTerm( "introduced", _, _ )                             => Seq()
-    case TptpTerm( "theory", TptpTerm( "equality", _* ), _* )       => Seq()
-    case GeneralColon( TptpTerm( label ), _ )                       => Seq( label )
-    case TptpTerm( dagSource )                                      => Seq( dagSource )
+  def getParents( justification: GeneralTerm ): List[String] = justification match {
+    case TptpTerm( "file", _, _ )                                   => Nil
+    case TptpTerm( "inference", _, _, GeneralList( parents @ _* ) ) => parents.toList flatMap getParents
+    case TptpTerm( "introduced", _, _ )                             => Nil
+    case TptpTerm( "theory", TptpTerm( "equality", _* ), _* )       => Nil
+    case GeneralColon( TptpTerm( label ), _ )                       => List( label )
+    case TptpTerm( dagSource )                                      => List( dagSource )
   }
 
   def findClauseRenaming( from: HOLSequent, to: HOLSequent ): Option[Map[Var, Var]] =
@@ -88,14 +88,14 @@ object TptpProofParser {
       if subst.isInjectiveRenaming
     } yield subst.map.map { case ( l: Var, r: Var ) => l -> r }
 
-  def parseSteps( stepList: TptpFile, labelledCNF: Map[String, Seq[FOLClause]] ): RefutationSketch = {
+  def parseSteps( stepList: TptpFile, labelledCNF: Map[String, List[FOLClause]] ): RefutationSketch = {
     val steps = ( for ( input @ AnnotatedFormula( _, name, _, _, _ ) <- stepList.inputs ) yield name -> input ).toMap
 
-    val memo = mutable.Map[String, Seq[RefutationSketch]]()
+    val memo = mutable.Map[String, List[RefutationSketch]]()
     val splDefs = mutable.Map[( FOLAtom, Boolean ), AvatarDefinition]()
     val splAtoms = mutable.Set[FOLAtom]()
     def filterVampireSplits( clause: FOLClause ): FOLClause = clause.filterNot( splAtoms )
-    def convertAvatarDefinition( defn: Formula, splAtom: FOLAtom ): Seq[RefutationSketch] = {
+    def convertAvatarDefinition( defn: Formula, splAtom: FOLAtom ): List[RefutationSketch] = {
       splAtoms += splAtom
       val comps = defn match {
         case splAtom @ FOLAtom( _, _ ) if freeVariables( splAtom ).isEmpty =>
@@ -103,14 +103,14 @@ object TptpProofParser {
         case Neg( splAtom @ FOLAtom( _, _ ) ) if freeVariables( splAtom ).isEmpty =>
           Polarity.values.map { AvatarGroundComp( splAtom, _ ) }
         case _ =>
-          Seq( AvatarNonGroundComp( splAtom, AvatarNonGroundComp.DefinitionFormula.canonize( defn ) ) )
+          List( AvatarNonGroundComp( splAtom, AvatarNonGroundComp.DefinitionFormula.canonize( defn ) ) )
       }
       comps map { comp =>
         splDefs( ( splAtom, comp.assertion.succedent.nonEmpty ) ) = comp
         SketchComponentIntro( comp )
       }
     }
-    def convert( stepName: String ): Seq[RefutationSketch] = memo.getOrElseUpdate( stepName, steps( stepName ) match {
+    def convert( stepName: String ): List[RefutationSketch] = memo.getOrElseUpdate( stepName, steps( stepName ) match {
       case AnnotatedFormula( "fof", _, "plain", And( Imp( defn, Neg( splAtom: FOLAtom ) ), _ ), TptpTerm( "introduced", TptpTerm( "sat_splitting_component" ), _ ) +: _ ) =>
         convertAvatarDefinition( defn, splAtom )
       case AnnotatedFormula( "fof", _, "plain", Bottom(), ( justification @ TptpTerm( "inference", TptpTerm( "sat_splitting_refutation" ), _, _ ) ) +: _ ) =>
@@ -128,12 +128,12 @@ object TptpProofParser {
           require( parent.conclusion.isEmpty )
           parent
         }
-        Seq( SketchSplitCombine( splitParents ) )
+        List( SketchSplitCombine( splitParents ) )
       case AnnotatedFormula( "fof", _, "plain", And( Imp( splAtom: FOLAtom, defn ), _ ), TptpTerm( "introduced", FOLVar( "AVATAR_definition" ), _ ) +: _ ) =>
         convertAvatarDefinition( defn, splAtom )
       case AnnotatedFormula( "fof", _, "plain", disj, ( justification @ TptpTerm( "inference", FOLVar( "AVATAR_split_clause" ), _, _ ) ) +: _ ) =>
-        val Seq( assertion ) = CNFp( disj ).toSeq
-        val Seq( splittedClause, _* ) = getParents( justification ) flatMap convert
+        val assertion :: Nil = CNFp( disj ).toList
+        val splittedClause :: _ = getParents( justification ) flatMap convert
 
         var p = splittedClause
         for {
@@ -147,15 +147,15 @@ object TptpProofParser {
         } )
 
         require( p.conclusion.isEmpty, s"$assertion\n$splittedClause\n$splDefs" )
-        Seq( p )
+        List( p )
       case AnnotatedFormula( "fof", _, "plain", Bottom(), ( justification @ TptpTerm( "inference", FOLVar( "AVATAR_sat_refutation" ), _, _ ) ) +: _ ) =>
-        Seq( SketchSplitCombine( getParents( justification ).flatMap( convert ) ) )
+        List( SketchSplitCombine( getParents( justification ).flatMap( convert ) ) )
       case AnnotatedFormula( "fof", _, "conjecture", _, TptpTerm( "file", _, TptpTerm( label ) ) +: _ ) =>
         labelledCNF( label ) map SketchAxiom
       case AnnotatedFormula( _, _, _, axiom: FOLFormula, TptpTerm( "file", _, TptpTerm( label ) ) +: _ ) =>
         CNFp( axiom ).toSeq match {
           case Seq( axiomClause ) =>
-            Seq( SketchInference(
+            List( SketchInference(
               axiomClause,
               labelledCNF( label ) map SketchAxiom
             ) )
@@ -165,7 +165,7 @@ object TptpProofParser {
         val label = stepName
         CNFp( axiom ).toSeq match {
           case Seq( axiomClause ) =>
-            Seq( SketchInference(
+            List( SketchInference(
               axiomClause,
               labelledCNF( label ) map SketchAxiom
             ) )
@@ -178,8 +178,8 @@ object TptpProofParser {
             val conclusionClause_ = filterVampireSplits( conclusionClause )
             val sketchParents_ = sketchParents.
               find( p => clauseSubsumption( p.conclusion, conclusionClause_ ).isDefined ).
-              fold( sketchParents )( Seq( _ ) )
-            Seq( SketchInference( conclusionClause_, sketchParents_ ) )
+              fold( sketchParents )( List( _ ) )
+            List( SketchInference( conclusionClause_, sketchParents_ ) )
           case clauses => getParents( justification ) flatMap convert
         }
     } )

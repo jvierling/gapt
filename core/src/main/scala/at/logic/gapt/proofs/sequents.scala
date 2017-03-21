@@ -332,7 +332,7 @@ case class Sequent[+A]( antecedent: Vector[A], succedent: Vector[A] ) {
     }
   }
 
-  def apply( is: Seq[SequentIndex] ): Seq[A] = is map this.apply
+  def apply( is: List[SequentIndex] ): List[A] = is map this.apply
 
   /**
    * Tests whether the sequent is defined at the supplied SequentIndex.
@@ -350,7 +350,7 @@ case class Sequent[+A]( antecedent: Vector[A], succedent: Vector[A] ) {
    *
    * @return
    */
-  def indices: Vector[SequentIndex] = indicesSequent.elements
+  def indices: List[SequentIndex] = indicesSequent.elements.toList
 
   /**
    * Returns the range of indices of the sequent as a sequent.
@@ -365,9 +365,9 @@ case class Sequent[+A]( antecedent: Vector[A], succedent: Vector[A] ) {
    * @param p A function of type A => Boolean.
    * @return
    */
-  def indicesWhere( p: A => Boolean ): Vector[SequentIndex] = indices filter { i => p( this( i ) ) }
+  def indicesWhere( p: A => Boolean ): List[SequentIndex] = indices filter { i => p( this( i ) ) }
 
-  def indicesWherePol( p: A => Boolean, pol: Polarity ): Vector[SequentIndex] =
+  def indicesWherePol( p: A => Boolean, pol: Polarity ): List[SequentIndex] =
     indices filter { i => ( i.polarity == pol ) && p( this( i ) ) }
 
   /**

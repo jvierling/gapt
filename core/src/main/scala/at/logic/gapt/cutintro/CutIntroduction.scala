@@ -17,6 +17,7 @@ import at.logic.gapt.provers.sat.Sat4j
 import at.logic.gapt.provers.smtlib.Z3
 import at.logic.gapt.provers.verit.VeriT
 import at.logic.gapt.utils.{ Logger, metrics }
+import cats.implicits._
 
 trait GrammarFindingMethod {
   def findGrammars( lang: Set[Expr] ): Option[VTRATG]
@@ -50,8 +51,8 @@ case object ReforestMethod extends GrammarFindingMethod {
  * @param us  Formulas of the original end-sequent, together with their instances.
  * @param ss  Instances of the cut-implications.
  */
-case class SchematicExtendedHerbrandSequent( us: Sequent[( FOLFormula, Seq[Seq[FOLTerm]] )], ss: Seq[( Seq[FOLVar], Seq[Seq[FOLTerm]] )] ) {
-  require( ss.forall { case ( vars, inst ) => inst.forall { case termlist => vars.length == termlist.length } } )
+case class SchematicExtendedHerbrandSequent( us: Sequent[( FOLFormula, List[List[FOLTerm]] )], ss: List[( List[FOLVar], List[List[FOLTerm]] )] ) {
+  require( ss.forall { case ( vars, inst ) => inst.forall( termlist => vars.length == termlist.length ) } )
 
   us.antecedent foreach {
     case ( All.Block( vs, f ), insts ) =>
@@ -81,7 +82,7 @@ case class SchematicExtendedHerbrandSequent( us: Sequent[( FOLFormula, Seq[Seq[F
       ss foreach {
         case ( sVars, sInstances ) =>
           instances = for ( instance <- instances; sInstance <- sInstances )
-            yield FOLSubstitution( sVars zip sInstance )( instance ).toList
+            yield FOLSubstitution( sVars zip sInstance )( instance )
       }
       u -> instances
   }
@@ -142,7 +143,7 @@ object sehsToVTRATG {
       case FOLVar( n ) => FOLVar( n ) -> FOLConst( n )
     } )
 
-    VTRATG( startSymbol, List( startSymbol ) +: nonTerminals, productions map { p => p._1.toList -> grounding( p._2 ).toList } )
+    VTRATG( startSymbol, List( startSymbol ) +: nonTerminals, productions map { p => p._1 -> grounding( p._2 ) } )
   }
 }
 

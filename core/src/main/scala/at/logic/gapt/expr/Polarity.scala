@@ -41,5 +41,5 @@ object Polarity {
   val InSuccedent = Positive
   val InAntecedent = Negative
 
-  val values = Seq( Negative, Positive )
+  val values = List( Negative, Positive )
 }

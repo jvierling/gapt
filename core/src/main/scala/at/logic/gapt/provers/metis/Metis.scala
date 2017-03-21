@@ -15,19 +15,19 @@ object Metis extends Metis
 
 class Metis extends ResolutionProver with ExternalProgram {
   override def getResolutionProof( seq: Traversable[HOLClause] ): Option[ResolutionProof] =
-    renameConstantsToFi.wrap( seq.toSeq )(
-      ( renaming, cnf: Seq[HOLClause] ) => {
+    renameConstantsToFi.wrap( seq.toList )(
+      ( renaming, cnf: List[HOLClause] ) => {
         val labelledCNF = cnf.zipWithIndex.map { case ( clause, index ) => s"formula$index" -> clause.asInstanceOf[FOLClause] }.toMap
         val tptpIn = TPTPFOLExporter.exportLabelledCNF( labelledCNF ).toString
         val output = runProcess.withTempInputFile( Seq( "metis", "--show", "proof" ), tptpIn )
-        val lines = output.split( "\n" ).toSeq
+        val lines = output.split( "\n" ).toList
         if ( lines.exists( _.startsWith( "SZS status Unsatisfiable" ) ) ) {
           val tptpDerivation = lines.
             dropWhile( !_.startsWith( "SZS output start CNFRefutation " ) ).drop( 1 ).
             takeWhile( !_.startsWith( "SZS output end CNFRefutation " ) ).
             mkString( "\n" )
           RefutationSketchToResolution( TptpProofParser.parse( StringInputFile( tptpDerivation ), labelledCNF mapValues {
-            Seq( _ )
+            List( _ )
           } ) ) match {
             case Right( proof ) => Some( proof )
             case Left( error )  => throw new IllegalArgumentException( error.toString )

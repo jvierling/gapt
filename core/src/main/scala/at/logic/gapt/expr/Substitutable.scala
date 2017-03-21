@@ -2,6 +2,7 @@ package at.logic.gapt.expr
 
 import at.logic.gapt.proofs.Sequent
 import at.logic.gapt.utils.Not
+import cats.Functor
 
 import scala.annotation.implicitNotFound
 
@@ -62,28 +63,16 @@ object Substitutable {
   }
 
   /**
-   * Testifies that a Set of substitutable objects is itself substitutable (by mapping over it).
+   * Testifies that substitutability carries over to functors.
+   */
+  implicit def SubstitutableFunctor[F[_]: Functor, S <: Substitution, T, U]( implicit ev: Substitutable[S, T, U] ): Substitutable[S, F[T], F[U]] =
+    ( sub, ft ) => Functor[F].map( ft )( ev.applySubstitution( sub, _ ) )
+
+  /**
+   * Testifies that substitutability carries over to sets (sets are not functors in cats!).
    */
   implicit def SubstitutableSet[S <: Substitution, T, U]( implicit ev: Substitutable[S, T, U] ): Substitutable[S, Set[T], Set[U]] =
-    ( sub, set ) => set.map( ev.applySubstitution( sub, _ ) )
-
-  /**
-   * Testifies that a Seq of substitutable objects is itself substitutable (by mapping over it).
-   */
-  implicit def SubstitutableSeq[S <: Substitution, T, U]( implicit ev: Substitutable[S, T, U] ): Substitutable[S, Seq[T], Seq[U]] =
-    ( sub, seq ) => seq.map( ev.applySubstitution( sub, _ ) )
-
-  /**
-   * Testifies that an Option of substitutable objects is itself substitutable (by mapping over it).
-   */
-  implicit def SubstitutableOption[S <: Substitution, T, U]( implicit ev: Substitutable[S, T, U] ): Substitutable[S, Option[T], Option[U]] =
-    ( sub, opt ) => opt map { ev.applySubstitution( sub, _ ) }
-
-  /**
-   * Testifies that a Sequent of substitutable objects is itself substitutable (by mapping over it).
-   */
-  implicit def SubstitutableSequent[S <: Substitution, T, U]( implicit ev: Substitutable[S, T, U] ): Substitutable[S, Sequent[T], Sequent[U]] =
-    ( sub, sequent ) => sequent map { ev.applySubstitution( sub, _ ) }
+    ( sub, st ) => st.map( ev.applySubstitution( sub, _ ) )
 
   /**
    * Testifies that a pair of substitutable objects is substitutable (by applying the substitution to each element).

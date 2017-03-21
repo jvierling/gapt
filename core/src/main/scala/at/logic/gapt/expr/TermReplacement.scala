@@ -78,12 +78,20 @@ object Replaceable {
       def names( obj: Sequent[I] ) = obj.elements flatMap { containedNames( _ ) } toSet
     }
 
-  implicit def seqReplaceable[I, O]( implicit ev: Replaceable[I, O] ): Replaceable[Seq[I], Seq[O]] =
-    new Replaceable[Seq[I], Seq[O]] {
-      override def replace( obj: Seq[I], p: PartialFunction[Expr, Expr] ) =
+  implicit def listReplaceable[I, O]( implicit ev: Replaceable[I, O] ): Replaceable[List[I], List[O]] =
+    new Replaceable[List[I], List[O]] {
+      override def replace( obj: List[I], p: PartialFunction[Expr, Expr] ) =
         obj.map { TermReplacement( _, p ) }
 
-      def names( obj: Seq[I] ) = obj flatMap { containedNames( _ ) } toSet
+      def names( obj: List[I] ) = obj flatMap { containedNames( _ ) } toSet
+    }
+
+  implicit def vectorReplaceable[I, O]( implicit ev: Replaceable[I, O] ): Replaceable[Vector[I], Vector[O]] =
+    new Replaceable[Vector[I], Vector[O]] {
+      override def replace( obj: Vector[I], p: PartialFunction[Expr, Expr] ) =
+        obj.map { TermReplacement( _, p ) }
+
+      def names( obj: Vector[I] ) = obj flatMap { containedNames( _ ) } toSet
     }
 
   implicit def setReplaceable[I, O]( implicit ev: Replaceable[I, O] ): Replaceable[Set[I], Set[O]] =
@@ -115,7 +123,7 @@ object Replaceable {
       override def replace( obj: Map[I1, I2], p: PartialFunction[Expr, Expr] ): Map[O1, O2] =
         obj.map( TermReplacement( _, p ) )
 
-      def names( obj: Map[I1, I2] ) = containedNames( obj.toSeq )
+      def names( obj: Map[I1, I2] ) = containedNames( obj.toList )
     }
 
 }

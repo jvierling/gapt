@@ -7,6 +7,7 @@ import at.logic.gapt.proofs.lk._
 import at.logic.gapt.provers.escargot.Escargot
 import at.logic.gapt.provers.viper.ViperTactic
 import at.logic.gapt.provers.viper.aip.axioms.StandardInductionAxioms
+import cats.implicits._
 
 /**
  * Predefined tactics in gaptic.

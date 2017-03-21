@@ -2,7 +2,9 @@ package at.logic.gapt.cutintro
 
 import at.logic.gapt.expr._
 import at.logic.gapt.expr.hol.{ simplify, instantiate, CNFp, CNFn }
-import at.logic.gapt.proofs.{ FOLClause, SequentIndex, Suc, Ant }
+import at.logic.gapt.proofs._
+import at.logic.gapt.proofs.Sequent._
+import cats.implicits._
 
 import scala.collection.mutable
 
@@ -66,8 +68,8 @@ object beautifySolution {
       newCFs.drop( i ).contains( Top() ) ||
         newCFs( i ) == Bottom()
     }
-    val nontrivialSS = nonTrivialIndices.map( ehs.sehs.ss )
-    val nontrivialCFs = nonTrivialIndices.map( newCFs )
+    val nontrivialSS = nonTrivialIndices.map( ehs.sehs.ss ).toList
+    val nontrivialCFs = nonTrivialIndices.map( newCFs ).toList
 
     val grounding = FOLSubstitution( newCFs.indices.diff( nonTrivialIndices ).
       flatMap( ehs.sehs.eigenVariables ).

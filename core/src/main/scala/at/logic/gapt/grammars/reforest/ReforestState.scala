@@ -2,6 +2,7 @@ package at.logic.gapt.grammars.reforest
 
 import at.logic.gapt.expr._
 import at.logic.gapt.grammars._
+import cats.implicits._
 
 import scala.collection.mutable
 
@@ -149,7 +150,7 @@ case class ReforestState(
 
     if ( ss isEmpty ) return this
 
-    val newArgs = ss.head.domain.toSeq.sortBy { _.toString }
+    val newArgs = ss.head.domain.toList.sortBy { _.toString }
     val newNT = Const( s"B$highestNTIndex", FunctionType( nonTerminal.ty, newArgs map { _.ty } ) )
 
     copy(

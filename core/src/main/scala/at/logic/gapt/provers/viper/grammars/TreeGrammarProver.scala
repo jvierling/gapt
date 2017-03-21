@@ -176,7 +176,7 @@ class TreeGrammarProver( val ctx: Context, val sequent: HOLSequent, val options:
     val formula = BetaReduction.betaNormalize( instantiate( qbup, solution ) )
     require( smtSolver isValid skolemize( formula ), s"Solution not valid" )
 
-    val proof = spwi.lkProof( Seq( solution ), EquationalLKProver )
+    val proof = spwi.lkProof( List( solution ), EquationalLKProver )
     info( s"Found proof with ${proof.dagLike.size} inferences" )
 
     ctx.check( proof )
