@@ -1729,7 +1729,7 @@ object EqualityRightRule extends ConvenienceConstructor( "EqualityRightRule" ) {
  * @param conclusion  Index of F(c(x,,1,,,...,x,,n,,,y,,1,,,...,y,,n,,))
  */
 case class InductionCase( proof: LKProof, constructor: Const,
-                          hypotheses: Seq[SequentIndex], eigenVars: Seq[Var],
+                          hypotheses: List[SequentIndex], eigenVars: List[Var],
                           conclusion: SequentIndex ) {
   val FunctionType( indTy, fieldTypes ) = constructor.ty
   require( fieldTypes == eigenVars.map( _.ty ) )
@@ -1762,7 +1762,7 @@ case class InductionCase( proof: LKProof, constructor: Const,
  * @param cases A sequence of proofs showing that each type constructor preserves the validity of the main formula.
  * @param formula The formula we want to prove via induction.
  */
-case class InductionRule( cases: Seq[InductionCase], formula: Abs, term: Expr ) extends CommonRule {
+case class InductionRule( cases: Vector[InductionCase], formula: Abs, term: Expr ) extends CommonRule {
   val Abs( quant @ Var( _, indTy ), qfFormula ) = formula
   require( term.ty == indTy )
   cases foreach { c =>
@@ -1776,8 +1776,8 @@ case class InductionRule( cases: Seq[InductionCase], formula: Abs, term: Expr ) 
 
   val mainFormula = BetaReduction.betaNormalize( formula( term ).asInstanceOf[Formula] )
   override protected def mainFormulaSequent = Sequent() :+ mainFormula
-  override def auxIndices: Seq[Seq[SequentIndex]] = cases map { c => c.hypotheses :+ c.conclusion }
-  override def immediateSubProofs: Seq[LKProof] = cases map { _.proof }
+  override def auxIndices: Vector[List[SequentIndex]] = cases map { c => c.hypotheses :+ c.conclusion }
+  override def immediateSubProofs: Vector[LKProof] = cases map { _.proof }
 
   private lazy val product = cases.flatMap { _.productIterator } :+ formula :+ term
   override def productArity = product.size

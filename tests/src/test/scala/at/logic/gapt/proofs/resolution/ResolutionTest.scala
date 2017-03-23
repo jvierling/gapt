@@ -1,7 +1,6 @@
 package at.logic.gapt.proofs.resolution
 
 import at.logic.gapt.expr._
-import at.logic.gapt.proofs.expansion._
 import at.logic.gapt.proofs.lk.ResolutionProofBuilder
 import at.logic.gapt.proofs.{ Ant, Clause, Sequent, Suc }
 import at.logic.gapt.utils.SatMatchers
@@ -12,7 +11,7 @@ class ResolutionTest extends Specification with SatMatchers {
   "Input" in {
     Input( Clause() ).conclusion.isEmpty must_== true
     Input( Clause() ).immediateSubProofs must beEmpty
-    Input( hoa"P" +: Clause() ).mainIndices must_== Seq( Ant( 0 ) )
+    Input( hoa"P" +: Clause() ).mainIndices must_== List( Ant( 0 ) )
   }
 
   "ReflexivityClause" in {
@@ -100,12 +99,12 @@ class ResolutionTest extends Specification with SatMatchers {
     val c3 = ResolutionProofBuilder.c( in ).
       u( ImpL2( _, Ant( 0 ) ) ).u( OrL2( _, Ant( 0 ) ) ).qed
 
-    val comp1 = AvatarNonGroundComp( hoa"spl1", hof"!x p x", Seq( hov"x" ) )
-    val comp2 = AvatarNonGroundComp( hoa"spl2", hof"!x q x", Seq( hov"y" ) )
-    val split = AvatarSplit( c1, Seq( comp1, comp2 ) )
+    val comp1 = AvatarNonGroundComp( hoa"spl1", hof"!x p x", List( hov"x" ) )
+    val comp2 = AvatarNonGroundComp( hoa"spl2", hof"!x q x", List( hov"y" ) )
+    val split = AvatarSplit( c1, List( comp1, comp2 ) )
 
     val p1 = AvatarComponent( comp1 )
-    val p2 = AvatarComponent( comp2.copy( vars = Seq( hov"x" ) ) )
+    val p2 = AvatarComponent( comp2.copy( vars = List( hov"x" ) ) )
 
     val case1 = AvatarContradiction( Resolution( Subst( p1, Substitution( hov"x" -> le"c" ) ), Suc( 0 ), c2, Ant( 0 ) ) )
     val case2 = AvatarContradiction( Resolution( Subst( p2, Substitution( hov"x" -> le"d" ) ), Suc( 0 ), c3, Ant( 0 ) ) )
@@ -125,7 +124,7 @@ class ResolutionTest extends Specification with SatMatchers {
   "daglike performance" in {
     def proof( n: Int ) = {
       var p: ResolutionProof = Taut( hoa"a" )
-      0 until n foreach { i =>
+      0 until n foreach { _ =>
         p = Resolution( p, Suc( 0 ), p, Ant( 0 ) )
       }
       p

@@ -56,12 +56,12 @@ class CutIntroTest extends Specification {
   }
 
   "introduce two cuts into linear example proof with improveSolutionLK" in {
-    val us = ( fof"P 0" -> Seq( Seq() ) ) +:
-      ( fof"!x (P x -> P (s x))" -> Seq( Seq( fot"x_1" ), Seq( fot"s x_1" ) ) ) +:
-      Sequent() :+ ( fof"P ${Numeral( 8 )}" -> Seq( Seq() ) )
-    val ss = Seq(
-      Seq( fov"x_1" ) -> Seq( Seq( fot"x_2" ), Seq( fot"s (s x_2)" ) ),
-      Seq( fov"x_2" ) -> Seq( Seq( fot"0" ), Seq( Numeral( 4 ) ) )
+    val us = ( fof"P 0" -> List( Nil ) ) +:
+      ( fof"!x (P x -> P (s x))" -> List( List( fot"x_1" ), List( fot"s x_1" ) ) ) +:
+      Sequent() :+ ( fof"P ${Numeral( 8 )}" -> List( Nil ) )
+    val ss = List(
+      List( fov"x_1" ) -> List( List( fot"x_2" ), List( fot"s (s x_2)" ) ),
+      List( fov"x_2" ) -> List( List( fot"0" ), List( Numeral( 4 ) ) )
     )
     val sehs = SchematicExtendedHerbrandSequent( us, ss )
 
@@ -72,7 +72,7 @@ class CutIntroTest extends Specification {
 
     val cf1 = fof"P x_1 -> P (s (s x_1))"
     val cf2 = fof"P x_2 -> P (s (s (s (s x_2))))"
-    improved.formulas must_== Seq( cf1, cf2 )
+    improved.formulas must_== List( cf1, cf2 )
 
     quantRulesNumber( pwc ) must_== sehs.size
   }

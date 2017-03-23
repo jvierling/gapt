@@ -16,9 +16,9 @@ sealed trait IvyResolutionProof extends SequentProof[FOLAtom, IvyResolutionProof
   val clause_exp: SExpression
 
   // FIXME: provide a SequentProof trait without SequentConnectors
-  override def mainIndices: Seq[SequentIndex] = ???
-  override def occConnectors: Seq[SequentConnector] = ???
-  override def auxIndices: Seq[Seq[SequentIndex]] = ???
+  override def mainIndices: List[SequentIndex] = ???
+  override def occConnectors: Vector[SequentConnector] = ???
+  override def auxIndices: Vector[List[SequentIndex]] = ???
 }
 
 case class InitialClause(

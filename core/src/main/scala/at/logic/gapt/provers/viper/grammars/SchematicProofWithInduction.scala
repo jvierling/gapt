@@ -16,7 +16,7 @@ trait SchematicProofWithInduction {
   def lkProof( solution: List[Expr], prover: Prover ): LKProof
 
   def paramVars: List[Var]
-  def generatedLanguage( inst: Seq[Expr] ): Set[Formula]
+  def generatedLanguage( inst: List[Expr] ): Set[Formula]
 }
 
 case class ProofByRecursionScheme(
@@ -99,7 +99,7 @@ case class ProofByRecursionScheme(
     state
   }
 
-  def mkLemma( solution: Seq[Expr], nonTerminal: Const, prover: Prover ) = {
+  def mkLemma( solution: List[Expr], nonTerminal: Const, prover: Prover ) = {
     val lem @ All.Block( vs, matrix ) = lemma( solution, nonTerminal )
 
     val prevLems = for ( prevNT <- dependencyOrder.takeWhile( _ != nonTerminal ) )
@@ -129,7 +129,7 @@ case class ProofByRecursionScheme(
     state.result
   }
 
-  def lkProof( solution: Seq[Expr], prover: Prover ): LKProof = {
+  def lkProof( solution: List[Expr], prover: Prover ): LKProof = {
     var state = ProofState( theory :+ ( "goal" -> conj ) )
     for ( nt <- dependencyOrder if nt != recSchem.startSymbol ) {
       val lem = lemma( solution, nt )
@@ -146,6 +146,6 @@ case class ProofByRecursionScheme(
     cleanStructuralRules( state.result )
   }
 
-  def generatedLanguage( inst: Seq[Expr] ) =
+  def generatedLanguage( inst: List[Expr] ) =
     recSchem.parametricLanguage( inst: _* ).map( _.asInstanceOf[Formula] )
 }

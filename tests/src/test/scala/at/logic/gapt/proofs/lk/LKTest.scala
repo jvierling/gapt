@@ -109,16 +109,16 @@ class LKTest extends Specification {
 
       testChildren( o, "w_l" )(
         p.premise,
-        Seq( Ant( 1 ) ),
+        List( Ant( 1 ) ),
 
-        Seq( Suc( 0 ) )
+        List( Suc( 0 ) )
       )
 
       testParents( o, "w_l" )(
         p.endSequent,
-        Seq(),
-        Seq( Ant( 0 ) ),
-        Seq( Suc( 0 ) )
+        Nil,
+        List( Ant( 0 ) ),
+        List( Suc( 0 ) )
       )
     }
   }
@@ -149,15 +149,15 @@ class LKTest extends Specification {
 
       testChildren( o, "w_r" )(
         p.endSequent,
-        Seq( Ant( 0 ) ),
-        Seq( Suc( 0 ) )
+        List( Ant( 0 ) ),
+        List( Suc( 0 ) )
       )
 
       testParents( o, "w_r" )(
         p.endSequent,
-        Seq( Ant( 0 ) ),
-        Seq( Suc( 0 ) ),
-        Seq()
+        List( Ant( 0 ) ),
+        List( Suc( 0 ) ),
+        Nil
       )
     }
   }
@@ -212,22 +212,22 @@ class LKTest extends Specification {
 
       testParents( o, "c_l" )(
         p.endSequent,
-        Seq( Ant( 1 ), Ant( 3 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 2 ) ),
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 1 ) )
+        List( Ant( 1 ), Ant( 3 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 2 ) ),
+        List( Suc( 0 ) ),
+        List( Suc( 1 ) )
       )
 
       testChildren( o, "c_l" )(
         p.premise,
-        Seq( Ant( 1 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 2 ) ),
-        Seq( Ant( 0 ) ),
+        List( Ant( 1 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 2 ) ),
+        List( Ant( 0 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 1 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 1 ) )
       )
     }
   }
@@ -282,23 +282,23 @@ class LKTest extends Specification {
 
       testParents( o, "c_r" )(
         p.endSequent,
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 1 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 1 ) ),
 
-        Seq( Suc( 1 ) ),
-        Seq( Suc( 3 ) ),
-        Seq( Suc( 0 ), Suc( 2 ) )
+        List( Suc( 1 ) ),
+        List( Suc( 3 ) ),
+        List( Suc( 0 ), Suc( 2 ) )
       )
 
       testChildren( o, "c_r" )(
         p.premise,
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 1 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 1 ) ),
 
-        Seq( Suc( 2 ) ),
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq( Suc( 1 ) )
+        List( Suc( 2 ) ),
+        List( Suc( 0 ) ),
+        List( Suc( 2 ) ),
+        List( Suc( 1 ) )
       )
     }
   }
@@ -349,51 +349,51 @@ class LKTest extends Specification {
 
       testChildren( oL, "cut" )(
         p.leftPremise,
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 1 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 1 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq(),
-        Seq( Suc( 1 ) )
+        List( Suc( 0 ) ),
+        Nil,
+        List( Suc( 1 ) )
       )
 
       testParents( oL, "cut" )(
         p.endSequent,
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 1 ) ),
-        Seq(),
-        Seq(),
-        Seq(),
+        List( Ant( 0 ) ),
+        List( Ant( 1 ) ),
+        Nil,
+        Nil,
+        Nil,
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq(),
-        Seq()
+        List( Suc( 0 ) ),
+        List( Suc( 2 ) ),
+        Nil,
+        Nil
       )
 
       testChildren( oR, "cut" )(
         p.rightPremise,
-        Seq( Ant( 2 ) ),
-        Seq(),
-        Seq( Ant( 3 ) ),
-        Seq( Ant( 4 ) ),
+        List( Ant( 2 ) ),
+        Nil,
+        List( Ant( 3 ) ),
+        List( Ant( 4 ) ),
 
-        Seq( Suc( 2 ) ),
-        Seq( Suc( 3 ) )
+        List( Suc( 2 ) ),
+        List( Suc( 3 ) )
       )
 
       testParents( oR, "cut" )(
         p.endSequent,
-        Seq(),
-        Seq(),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 2 ) ),
-        Seq( Ant( 3 ) ),
+        Nil,
+        Nil,
+        List( Ant( 0 ) ),
+        List( Ant( 2 ) ),
+        List( Ant( 3 ) ),
 
-        Seq(),
-        Seq(),
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 1 ) )
+        Nil,
+        Nil,
+        List( Suc( 0 ) ),
+        List( Suc( 1 ) )
       )
     }
   }
@@ -446,22 +446,22 @@ class LKTest extends Specification {
 
       testChildren( o, "¬:l" )(
         p.premise,
-        Seq( Ant( 1 ) ),
-        Seq( Ant( 2 ) ),
+        List( Ant( 1 ) ),
+        List( Ant( 2 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Suc( 1 ) )
+        List( Suc( 0 ) ),
+        List( Ant( 0 ) ),
+        List( Suc( 1 ) )
       )
 
       testParents( o, "¬:l" )(
         p.endSequent,
-        Seq( Suc( 1 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 1 ) ),
+        List( Suc( 1 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 1 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 2 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 2 ) )
       )
     }
   }
@@ -514,22 +514,22 @@ class LKTest extends Specification {
 
       testChildren( o, "¬:r" )(
         p.premise,
-        Seq( Ant( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq( Ant( 1 ) ),
+        List( Ant( 0 ) ),
+        List( Suc( 2 ) ),
+        List( Ant( 1 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 1 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 1 ) )
       )
 
       testParents( o, "¬:r" )(
         p.endSequent,
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 2 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 2 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 1 ) ),
-        Seq( Ant( 1 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 1 ) ),
+        List( Ant( 1 ) )
       )
     }
   }
@@ -582,22 +582,22 @@ class LKTest extends Specification {
 
       testParents( o, "∧_l" )(
         p.endSequent,
-        Seq( Ant( 1 ), Ant( 3 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 2 ) ),
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 1 ) )
+        List( Ant( 1 ), Ant( 3 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 2 ) ),
+        List( Suc( 0 ) ),
+        List( Suc( 1 ) )
       )
 
       testChildren( o, "∧_l" )(
         p.premise,
-        Seq( Ant( 1 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 2 ) ),
-        Seq( Ant( 0 ) ),
+        List( Ant( 1 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 2 ) ),
+        List( Ant( 0 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 1 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 1 ) )
       )
     }
   }
@@ -659,44 +659,44 @@ class LKTest extends Specification {
 
       testChildren( oL, "∧:r" )(
         p.leftPremise,
-        Seq( Ant( 0 ) ),
+        List( Ant( 0 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 4 ) ),
-        Seq( Suc( 1 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 4 ) ),
+        List( Suc( 1 ) )
       )
 
       testParents( oL, "∧:r" )(
         p.endSequent,
-        Seq( Ant( 0 ) ),
-        Seq(),
+        List( Ant( 0 ) ),
+        Nil,
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq(),
-        Seq(),
-        Seq( Suc( 1 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 2 ) ),
+        Nil,
+        Nil,
+        List( Suc( 1 ) )
       )
 
       testChildren( oR, "∧:r" )(
         p.rightPremise,
-        Seq( Ant( 1 ) ),
+        List( Ant( 1 ) ),
 
-        Seq( Suc( 2 ) ),
-        Seq( Suc( 4 ) ),
-        Seq( Suc( 3 ) )
+        List( Suc( 2 ) ),
+        List( Suc( 4 ) ),
+        List( Suc( 3 ) )
       )
 
       testParents( oR, "∧:r" )(
         p.endSequent,
-        Seq(),
-        Seq( Ant( 0 ) ),
+        Nil,
+        List( Ant( 0 ) ),
 
-        Seq(),
-        Seq(),
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq( Suc( 1 ) )
+        Nil,
+        Nil,
+        List( Suc( 0 ) ),
+        List( Suc( 2 ) ),
+        List( Suc( 1 ) )
       )
     }
   }
@@ -758,44 +758,44 @@ class LKTest extends Specification {
 
       testChildren( oL, "∨:l" )(
         p.leftPremise,
-        Seq( Ant( 1 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 2 ) ),
+        List( Ant( 1 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 2 ) ),
 
-        Seq( Suc( 0 ) )
+        List( Suc( 0 ) )
       )
 
       testParents( oL, "∨:l" )(
         p.endSequent,
-        Seq( Ant( 1 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 2 ) ),
-        Seq(),
-        Seq(),
+        List( Ant( 1 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 2 ) ),
+        Nil,
+        Nil,
 
-        Seq( Suc( 0 ) ),
-        Seq()
+        List( Suc( 0 ) ),
+        Nil
       )
 
       testChildren( oR, "∨:l" )(
         p.rightPremise,
-        Seq( Ant( 3 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 4 ) ),
+        List( Ant( 3 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 4 ) ),
 
-        Seq( Suc( 1 ) )
+        List( Suc( 1 ) )
       )
 
       testParents( oR, "∨:l" )(
         p.endSequent,
-        Seq( Ant( 1 ) ),
-        Seq(),
-        Seq(),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 2 ) ),
+        List( Ant( 1 ) ),
+        Nil,
+        Nil,
+        List( Ant( 0 ) ),
+        List( Ant( 2 ) ),
 
-        Seq(),
-        Seq( Suc( 0 ) )
+        Nil,
+        List( Suc( 0 ) )
       )
     }
   }
@@ -849,22 +849,22 @@ class LKTest extends Specification {
 
       testParents( o, "∨:r" )(
         p.endSequent,
-        Seq( Ant( 0 ) ),
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq( Suc( 4 ) ),
-        Seq( Suc( 1 ), Suc( 3 ) )
+        List( Ant( 0 ) ),
+        List( Suc( 0 ) ),
+        List( Suc( 2 ) ),
+        List( Suc( 4 ) ),
+        List( Suc( 1 ), Suc( 3 ) )
       )
 
       testChildren( o, "∨:r" )(
         p.premise,
-        Seq( Ant( 0 ) ),
+        List( Ant( 0 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 3 ) ),
-        Seq( Suc( 1 ) ),
-        Seq( Suc( 3 ) ),
-        Seq( Suc( 2 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 3 ) ),
+        List( Suc( 1 ) ),
+        List( Suc( 3 ) ),
+        List( Suc( 2 ) )
       )
     }
   }
@@ -926,44 +926,44 @@ class LKTest extends Specification {
 
       testChildren( oL, "→:l" )(
         p.leftPremise,
-        Seq( Ant( 1 ) ),
+        List( Ant( 1 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Suc( 1 ) )
+        List( Suc( 0 ) ),
+        List( Ant( 0 ) ),
+        List( Suc( 1 ) )
       )
 
       testParents( oL, "→:l" )(
         p.endSequent,
-        Seq( Suc( 1 ) ),
-        Seq( Ant( 0 ) ),
-        Seq(),
-        Seq(),
+        List( Suc( 1 ) ),
+        List( Ant( 0 ) ),
+        Nil,
+        Nil,
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq()
+        List( Suc( 0 ) ),
+        List( Suc( 2 ) ),
+        Nil
       )
 
       testChildren( oR, "→:l" )(
         p.rightPremise,
-        Seq( Ant( 2 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 3 ) ),
+        List( Ant( 2 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 3 ) ),
 
-        Seq( Suc( 2 ) )
+        List( Suc( 2 ) )
       )
 
       testParents( oR, "→:l" )(
         p.endSequent,
-        Seq( Ant( 1 ) ),
-        Seq(),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 2 ) ),
+        List( Ant( 1 ) ),
+        Nil,
+        List( Ant( 0 ) ),
+        List( Ant( 2 ) ),
 
-        Seq(),
-        Seq(),
-        Seq( Suc( 0 ) )
+        Nil,
+        Nil,
+        List( Suc( 0 ) )
       )
     }
   }
@@ -1017,23 +1017,23 @@ class LKTest extends Specification {
 
       testParents( o, "→:r" )(
         p.endSequent,
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 2 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 2 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq( Ant( 1 ), Suc( 1 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 2 ) ),
+        List( Ant( 1 ), Suc( 1 ) )
       )
 
       testChildren( o, "→:r" )(
         p.premise,
-        Seq( Ant( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq( Ant( 1 ) ),
+        List( Ant( 0 ) ),
+        List( Suc( 2 ) ),
+        List( Ant( 1 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq( Suc( 1 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 2 ) ),
+        List( Suc( 1 ) )
       )
     }
   }
@@ -1094,20 +1094,20 @@ class LKTest extends Specification {
 
       testChildren( o, "∀:r" )(
         p.premise,
-        Seq( Ant( 0 ) ),
+        List( Ant( 0 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq( Suc( 1 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 2 ) ),
+        List( Suc( 1 ) )
       )
 
       testParents( o, "∀:r" )(
         p.endSequent,
-        Seq( Ant( 0 ) ),
+        List( Ant( 0 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq( Suc( 1 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 2 ) ),
+        List( Suc( 1 ) )
       )
     }
   }
@@ -1168,20 +1168,20 @@ class LKTest extends Specification {
 
       testChildren( o, "∃:l" )(
         p.premise,
-        Seq( Ant( 1 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 2 ) ),
+        List( Ant( 1 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 2 ) ),
 
-        Seq( Suc( 0 ) )
+        List( Suc( 0 ) )
       )
 
       testParents( o, "∃:l" )(
         p.endSequent,
-        Seq( Ant( 1 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 2 ) ),
+        List( Ant( 1 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 2 ) ),
 
-        Seq( Suc( 0 ) )
+        List( Suc( 0 ) )
       )
     }
   }
@@ -1254,28 +1254,28 @@ class LKTest extends Specification {
 
       testChildren( o, "eq" )(
         p.premise,
-        Seq( Ant( 1 ) ),
-        Seq( Ant( 2 ) ),
-        Seq( Ant( 3 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 4 ) ),
+        List( Ant( 1 ) ),
+        List( Ant( 2 ) ),
+        List( Ant( 3 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 4 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 1 ) ),
-        Seq( Suc( 2 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 1 ) ),
+        List( Suc( 2 ) )
       )
 
       testParents( o, "eq" )(
         p.endSequent,
-        Seq( Ant( 3 ) ),
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 1 ) ),
-        Seq( Ant( 2 ) ),
-        Seq( Ant( 4 ) ),
+        List( Ant( 3 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 1 ) ),
+        List( Ant( 2 ) ),
+        List( Ant( 4 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 1 ) ),
-        Seq( Suc( 2 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 1 ) ),
+        List( Suc( 2 ) )
       )
     }
   }
@@ -1348,28 +1348,28 @@ class LKTest extends Specification {
 
       testChildren( o, "eq" )(
         p.premise,
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 1 ) ),
-        Seq( Ant( 2 ) ),
-        Seq( Ant( 3 ) ),
-        Seq( Ant( 4 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 1 ) ),
+        List( Ant( 2 ) ),
+        List( Ant( 3 ) ),
+        List( Ant( 4 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq( Suc( 1 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 2 ) ),
+        List( Suc( 1 ) )
       )
 
       testParents( o, "eq" )(
         p.endSequent,
-        Seq( Ant( 0 ) ),
-        Seq( Ant( 1 ) ),
-        Seq( Ant( 2 ) ),
-        Seq( Ant( 3 ) ),
-        Seq( Ant( 4 ) ),
+        List( Ant( 0 ) ),
+        List( Ant( 1 ) ),
+        List( Ant( 2 ) ),
+        List( Ant( 3 ) ),
+        List( Ant( 4 ) ),
 
-        Seq( Suc( 0 ) ),
-        Seq( Suc( 2 ) ),
-        Seq( Suc( 1 ) )
+        List( Suc( 0 ) ),
+        List( Suc( 2 ) ),
+        List( Suc( 1 ) )
       )
     }
   }
@@ -1388,9 +1388,9 @@ class LKTest extends Specification {
       val ax2 = TheoryAxiom( Pxy +: Sequent() :+ PSxy )
 
       InductionRule(
-        Seq(
-          InductionCase( ax1, FOLConst( "0" ), Seq(), Seq(), Suc( 0 ) ),
-          InductionCase( ax2, FOLFunctionConst( "s", 1 ), Seq( Ant( 0 ) ), Seq( x ), Suc( 0 ) )
+        Vector(
+          InductionCase( ax1, FOLConst( "0" ), Nil, Nil, Suc( 0 ) ),
+          InductionCase( ax2, FOLFunctionConst( "s", 1 ), List( Ant( 0 ) ), List( x ), Suc( 0 ) )
         ),
         Abs( x, Pxy ), x
       )
@@ -1401,7 +1401,7 @@ class LKTest extends Specification {
   }
 
   "exchange rules" should {
-    val Seq( a, b ) = Seq( "a", "b" ) map { FOLAtom( _ ) }
+    val List( a, b ) = List( "a", "b" ) map { FOLAtom( _ ) }
     "ExchangeLeftMacroRule" in {
       val p1 = LogicalAxiom( a )
       val p2 = WeakeningLeftRule( p1, b )

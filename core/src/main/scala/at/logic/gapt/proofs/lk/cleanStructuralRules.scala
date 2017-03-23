@@ -127,7 +127,7 @@ object cleanStructuralRules {
           ( subProofNew, subConnector * p.occConnectors( i ).inv )
 
         } else { // Not allowed to throw away subproofs, so we have to perform some weakenings
-          val ( casesNew, subConnectorsNew ) = ( for ( i <- cases.indices ) yield {
+          val ( casesNew, subConnectorsNew ) = ( for ( i <- cases.indices.toVector ) yield {
             val c = cases( i )
             val ( subProofNew, subConnector ) = ( subProofsNew( i ), subConnectors( i ) )
             val ( subProofNew_, subConnector_ ) = introduceWeakenings( c.proof, subProofNew, subConnector, c.hypotheses :+ c.conclusion )

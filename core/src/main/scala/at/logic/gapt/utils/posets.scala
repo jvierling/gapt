@@ -3,10 +3,10 @@ package at.logic.gapt.utils
 import scala.collection.mutable
 
 object linearizeStrictPartialOrder {
-  def apply[T]( set: Iterable[T], relation: Iterable[( T, T )] ): Either[Seq[T], Seq[T]] =
-    build( set.toSet, relation.toSet, Seq() )
+  def apply[T]( set: Iterable[T], relation: Iterable[( T, T )] ): Either[List[T], List[T]] =
+    build( set.toSet, relation.toSet, Nil )
 
-  private def build[T]( set: Set[T], relation: Set[( T, T )], prefix: Seq[T] ): Either[Seq[T], Seq[T]] =
+  private def build[T]( set: Set[T], relation: Set[( T, T )], prefix: List[T] ): Either[List[T], List[T]] =
     if ( set isEmpty ) {
       Right( prefix )
     } else {
@@ -18,8 +18,8 @@ object linearizeStrictPartialOrder {
       }
     }
 
-  private def findCycle[T]( start: T, relation: Set[( T, T )] ): Seq[T] = {
-    def walkDown( start: T, alreadyVisited: List[T] ): Seq[T] = {
+  private def findCycle[T]( start: T, relation: Set[( T, T )] ): List[T] = {
+    def walkDown( start: T, alreadyVisited: List[T] ): List[T] = {
       val Some( ( _, next ) ) = relation find { _._2 == start }
       if ( alreadyVisited contains next )
         next :: ( alreadyVisited.takeWhile( _ != next ) :+ next )
