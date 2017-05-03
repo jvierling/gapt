@@ -87,7 +87,7 @@ abstract class UnaryLKProof extends LKProof {
    */
   def premise = subProof.endSequent
 
-  override def immediateSubProofs = Seq( subProof )
+  override def immediateSubProofs = Vector( subProof )
 }
 
 object UnaryLKProof {
@@ -146,7 +146,7 @@ abstract class BinaryLKProof extends LKProof {
    */
   def rightPremise = rightSubProof.endSequent
 
-  override def immediateSubProofs = Seq( leftSubProof, rightSubProof )
+  override def immediateSubProofs = Vector( leftSubProof, rightSubProof )
 }
 
 object BinaryLKProof {
@@ -192,11 +192,11 @@ abstract class InitialSequent extends LKProof {
 
   override def mainIndices = endSequent.indices
 
-  override def auxIndices = Seq()
+  override def auxIndices = Vector()
 
-  override def immediateSubProofs = Seq()
+  override def immediateSubProofs = Vector()
 
-  override def occConnectors = Seq()
+  override def occConnectors = Vector()
 }
 
 object InitialSequent {
@@ -218,7 +218,7 @@ object TheoryAxiom {
  */
 case object TopAxiom extends InitialSequent {
   override def name: String = "⊤:r"
-  override def conclusion = HOLSequent( Nil, Seq( Top() ) )
+  override def conclusion = HOLSequent( Nil, List( Top() ) )
   def mainFormula = Top()
 }
 
@@ -231,7 +231,7 @@ case object TopAxiom extends InitialSequent {
  */
 case object BottomAxiom extends InitialSequent {
   override def name: String = "⊥:l"
-  override def conclusion = HOLSequent( Seq( Bottom() ), Nil )
+  override def conclusion = HOLSequent( List( Bottom() ), Nil )
   def mainFormula = Bottom()
 }
 
@@ -247,7 +247,7 @@ case object BottomAxiom extends InitialSequent {
  */
 case class LogicalAxiom( A: Formula ) extends InitialSequent {
   override def name = "ax"
-  override def conclusion = HOLSequent( Seq( A ), Seq( A ) )
+  override def conclusion = HOLSequent( Vector( A ), Vector( A ) )
   def mainFormula = A
 }
 
@@ -263,7 +263,7 @@ case class LogicalAxiom( A: Formula ) extends InitialSequent {
  */
 case class ReflexivityAxiom( s: Expr ) extends InitialSequent {
   override def name = "refl"
-  override def conclusion = HOLSequent( Seq(), Seq( Eq( s, s ) ) )
+  override def conclusion = HOLSequent( Vector(), Vector( Eq( s, s ) ) )
   def mainFormula = Eq( s, s )
 }
 
@@ -271,7 +271,7 @@ abstract class ContractionRule extends UnaryLKProof with CommonRule {
   def aux1: SequentIndex
   def aux2: SequentIndex
 
-  override def auxIndices = Seq( Seq( aux1, aux2 ) )
+  override def auxIndices = Vector( List( aux1, aux2 ) )
 
   val mainFormula = premise( aux1 )
 }
@@ -291,7 +291,7 @@ abstract class ContractionRule extends UnaryLKProof with CommonRule {
  */
 case class ContractionLeftRule( subProof: LKProof, aux1: SequentIndex, aux2: SequentIndex ) extends ContractionRule {
 
-  validateIndices( premise, Seq( aux1, aux2 ), Seq() )
+  validateIndices( premise, List( aux1, aux2 ), Nil )
 
   if ( premise( aux1 ) != premise( aux2 ) )
     throw LKRuleCreationException( s"Auxiliary formulas ${premise( aux1 )} and ${premise( aux2 )} are not equal." )
@@ -312,9 +312,9 @@ object ContractionLeftRule extends ConvenienceConstructor( "ContractionLeftRule"
   def apply( subProof: LKProof, f: Formula ): ContractionLeftRule = {
     val premise = subProof.endSequent
 
-    val ( indices, _ ) = findAndValidate( premise )( Seq( f, f ), Seq() )
+    val ( indices, _ ) = findAndValidate( premise )( List( f, f ), Nil )
 
-    new ContractionLeftRule( subProof, Ant( indices( 0 ) ), Ant( indices( 1 ) ) )
+    new ContractionLeftRule( subProof, Ant( indices.head ), Ant( indices( 1 ) ) )
   }
 
 }
@@ -334,7 +334,7 @@ object ContractionLeftRule extends ConvenienceConstructor( "ContractionLeftRule"
  */
 case class ContractionRightRule( subProof: LKProof, aux1: SequentIndex, aux2: SequentIndex ) extends ContractionRule {
 
-  validateIndices( premise, Seq(), Seq( aux1, aux2 ) )
+  validateIndices( premise, Nil, List( aux1, aux2 ) )
 
   if ( premise( aux1 ) != premise( aux2 ) )
     throw LKRuleCreationException( s"Auxiliary formulas ${premise( aux1 )} and ${premise( aux2 )} are not equal." )
@@ -356,8 +356,8 @@ object ContractionRightRule extends ConvenienceConstructor( "ContractionRightRul
   def apply( subProof: LKProof, f: Formula ): ContractionRightRule = {
     val premise = subProof.endSequent
 
-    val ( _, indices ) = findAndValidate( premise )( Seq(), Seq( f, f ) )
-    new ContractionRightRule( subProof, Suc( indices( 0 ) ), Suc( indices( 1 ) ) )
+    val ( _, indices ) = findAndValidate( premise )( Nil, List( f, f ) )
+    new ContractionRightRule( subProof, Suc( indices.head ), Suc( indices( 1 ) ) )
   }
 
 }
@@ -376,7 +376,7 @@ object ContractionRightRule extends ConvenienceConstructor( "ContractionRightRul
  */
 case class WeakeningLeftRule( subProof: LKProof, formula: Formula )
     extends UnaryLKProof with CommonRule {
-  override def auxIndices = Seq( Seq() )
+  override def auxIndices = Vector( Nil )
   override def name = "w:l"
   def mainFormula = formula
 
@@ -397,7 +397,7 @@ case class WeakeningLeftRule( subProof: LKProof, formula: Formula )
  */
 case class WeakeningRightRule( subProof: LKProof, formula: Formula )
     extends UnaryLKProof with CommonRule {
-  override def auxIndices = Seq( Seq() )
+  override def auxIndices = Vector( Nil )
   override def name = "w:r"
   def mainFormula = formula
 
@@ -421,8 +421,8 @@ case class WeakeningRightRule( subProof: LKProof, formula: Formula )
 case class CutRule( leftSubProof: LKProof, aux1: SequentIndex, rightSubProof: LKProof, aux2: SequentIndex )
     extends BinaryLKProof with CommonRule {
 
-  validateIndices( leftPremise, Seq(), Seq( aux1 ) )
-  validateIndices( rightPremise, Seq( aux2 ), Seq() )
+  validateIndices( leftPremise, Nil, List( aux1 ) )
+  validateIndices( rightPremise, List( aux2 ), Nil )
 
   if ( leftPremise( aux1 ) != rightPremise( aux2 ) )
     throw LKRuleCreationException( s"Auxiliary formulas are not the same:\n${leftPremise( aux1 )}\n${rightPremise( aux2 )}" )
@@ -431,7 +431,7 @@ case class CutRule( leftSubProof: LKProof, aux1: SequentIndex, rightSubProof: LK
 
   override def name = "cut"
 
-  def auxIndices = Seq( Seq( aux1 ), Seq( aux2 ) )
+  def auxIndices = Vector( List( aux1 ), List( aux2 ) )
 
   override def mainFormulaSequent = Sequent()
 }
@@ -452,10 +452,10 @@ object CutRule extends ConvenienceConstructor( "CutRule" ) {
   def apply( leftSubProof: LKProof, leftCutFormula: IndexOrFormula, rightSubProof: LKProof, rightCutFormula: IndexOrFormula ): CutRule = {
     val ( leftPremise, rightPremise ) = ( leftSubProof.endSequent, rightSubProof.endSequent )
 
-    val ( _, sucIndices ) = findAndValidate( leftPremise )( Seq(), Seq( leftCutFormula ) )
-    val ( antIndices, _ ) = findAndValidate( rightPremise )( Seq( rightCutFormula ), Seq() )
+    val ( _, sucIndices ) = findAndValidate( leftPremise )( Nil, List( leftCutFormula ) )
+    val ( antIndices, _ ) = findAndValidate( rightPremise )( List( rightCutFormula ), Nil )
 
-    new CutRule( leftSubProof, Suc( sucIndices( 0 ) ), rightSubProof, Ant( antIndices( 0 ) ) )
+    new CutRule( leftSubProof, Suc( sucIndices.head ), rightSubProof, Ant( antIndices.head ) )
 
   }
 
@@ -471,10 +471,10 @@ object CutRule extends ConvenienceConstructor( "CutRule" ) {
   def apply( leftSubProof: LKProof, rightSubProof: LKProof, cutFormula: Formula ): CutRule = {
     val ( leftPremise, rightPremise ) = ( leftSubProof.endSequent, rightSubProof.endSequent )
 
-    val ( _, sucIndices ) = findAndValidate( leftPremise )( Seq(), Seq( cutFormula ) )
-    val ( antIndices, _ ) = findAndValidate( rightPremise )( Seq( cutFormula ), Seq() )
+    val ( _, sucIndices ) = findAndValidate( leftPremise )( Nil, List( cutFormula ) )
+    val ( antIndices, _ ) = findAndValidate( rightPremise )( List( cutFormula ), Nil )
 
-    new CutRule( leftSubProof, Suc( sucIndices( 0 ) ), rightSubProof, Ant( antIndices( 0 ) ) )
+    new CutRule( leftSubProof, Suc( sucIndices.head ), rightSubProof, Ant( antIndices.head ) )
   }
 }
 
@@ -494,11 +494,11 @@ object CutRule extends ConvenienceConstructor( "CutRule" ) {
 case class NegLeftRule( subProof: LKProof, aux: SequentIndex )
     extends UnaryLKProof with CommonRule {
 
-  validateIndices( premise, Seq(), Seq( aux ) )
+  validateIndices( premise, Nil, List( aux ) )
 
   val mainFormula = Neg( premise( aux ) )
 
-  override def auxIndices = Seq( Seq( aux ) )
+  override def auxIndices = Vector( List( aux ) )
   override def name = "¬:l"
 
   override def mainFormulaSequent = mainFormula +: Sequent()
@@ -515,9 +515,9 @@ object NegLeftRule extends ConvenienceConstructor( "NegLeftRule" ) {
   def apply( subProof: LKProof, auxFormula: Formula ): NegLeftRule = {
     val premise = subProof.endSequent
 
-    val ( _, indices ) = findAndValidate( premise )( Seq(), Seq( auxFormula ) )
+    val ( _, indices ) = findAndValidate( premise )( Nil, List( auxFormula ) )
 
-    new NegLeftRule( subProof, Suc( indices( 0 ) ) )
+    new NegLeftRule( subProof, Suc( indices.head ) )
   }
 }
 
@@ -536,11 +536,11 @@ object NegLeftRule extends ConvenienceConstructor( "NegLeftRule" ) {
 case class NegRightRule( subProof: LKProof, aux: SequentIndex )
     extends UnaryLKProof with CommonRule {
 
-  validateIndices( premise, Seq( aux ), Seq() )
+  validateIndices( premise, List( aux ), Nil )
 
   val mainFormula = Neg( premise( aux ) )
 
-  override def auxIndices = Seq( Seq( aux ) )
+  override def auxIndices = Vector( List( aux ) )
   override def name = "¬:r"
 
   override def mainFormulaSequent = Sequent() :+ mainFormula
@@ -557,9 +557,9 @@ object NegRightRule extends ConvenienceConstructor( "NegRightRule" ) {
   def apply( subProof: LKProof, auxFormula: Formula ): NegRightRule = {
     val premise = subProof.endSequent
 
-    val ( indices, _ ) = findAndValidate( premise )( Seq( auxFormula ), Seq() )
+    val ( indices, _ ) = findAndValidate( premise )( List( auxFormula ), Nil )
 
-    new NegRightRule( subProof, Ant( indices( 0 ) ) )
+    new NegRightRule( subProof, Ant( indices.head ) )
   }
 }
 
@@ -579,13 +579,13 @@ object NegRightRule extends ConvenienceConstructor( "NegRightRule" ) {
 case class AndLeftRule( subProof: LKProof, aux1: SequentIndex, aux2: SequentIndex )
     extends UnaryLKProof with CommonRule {
 
-  validateIndices( premise, Seq( aux1, aux2 ), Seq() )
+  validateIndices( premise, List( aux1, aux2 ), Nil )
 
   val leftConjunct = premise( aux1 )
   val rightConjunct = premise( aux2 )
   val mainFormula = And( leftConjunct, rightConjunct )
 
-  override def auxIndices = Seq( Seq( aux1, aux2 ) )
+  override def auxIndices = Vector( List( aux1, aux2 ) )
 
   override def name = "∧:l"
 
@@ -607,9 +607,9 @@ object AndLeftRule extends ConvenienceConstructor( "AndLeftRule" ) {
   def apply( subProof: LKProof, leftConjunct: Either[SequentIndex, Formula], rightConjunct: Either[SequentIndex, Formula] ): AndLeftRule = {
     val premise = subProof.endSequent
 
-    val ( indices, _ ) = findAndValidate( premise )( Seq( leftConjunct, rightConjunct ), Seq() )
+    val ( indices, _ ) = findAndValidate( premise )( List( leftConjunct, rightConjunct ), Nil )
 
-    AndLeftRule( subProof, Ant( indices( 0 ) ), Ant( indices( 1 ) ) )
+    AndLeftRule( subProof, Ant( indices.head ), Ant( indices( 1 ) ) )
   }
 
   /**
@@ -643,15 +643,15 @@ object AndLeftRule extends ConvenienceConstructor( "AndLeftRule" ) {
 case class AndRightRule( leftSubProof: LKProof, aux1: SequentIndex, rightSubProof: LKProof, aux2: SequentIndex )
     extends BinaryLKProof with CommonRule {
 
-  validateIndices( leftPremise, Seq(), Seq( aux1 ) )
-  validateIndices( rightPremise, Seq(), Seq( aux2 ) )
+  validateIndices( leftPremise, Nil, List( aux1 ) )
+  validateIndices( rightPremise, Nil, List( aux2 ) )
 
   val leftConjunct = leftPremise( aux1 )
   val rightConjunct = rightPremise( aux2 )
 
   val mainFormula = And( leftConjunct, rightConjunct )
 
-  def auxIndices = Seq( Seq( aux1 ), Seq( aux2 ) )
+  def auxIndices = Vector( List( aux1 ), List( aux2 ) )
 
   override def name = "∧:r"
 
@@ -674,10 +674,10 @@ object AndRightRule extends ConvenienceConstructor( "AndRightRule" ) {
   def apply( leftSubProof: LKProof, leftConjunct: IndexOrFormula, rightSubProof: LKProof, rightConjunct: IndexOrFormula ): AndRightRule = {
     val ( leftPremise, rightPremise ) = ( leftSubProof.endSequent, rightSubProof.endSequent )
 
-    val ( _, leftIndices ) = findAndValidate( leftPremise )( Seq(), Seq( leftConjunct ) )
-    val ( _, rightIndices ) = findAndValidate( rightPremise )( Seq(), Seq( rightConjunct ) )
+    val ( _, leftIndices ) = findAndValidate( leftPremise )( Nil, List( leftConjunct ) )
+    val ( _, rightIndices ) = findAndValidate( rightPremise )( Nil, List( rightConjunct ) )
 
-    new AndRightRule( leftSubProof, Suc( leftIndices( 0 ) ), rightSubProof, Suc( rightIndices( 0 ) ) )
+    new AndRightRule( leftSubProof, Suc( leftIndices.head ), rightSubProof, Suc( rightIndices.head ) )
   }
 
   /**
@@ -712,15 +712,15 @@ object AndRightRule extends ConvenienceConstructor( "AndRightRule" ) {
 case class OrLeftRule( leftSubProof: LKProof, aux1: SequentIndex, rightSubProof: LKProof, aux2: SequentIndex )
     extends BinaryLKProof with CommonRule {
 
-  validateIndices( leftPremise, Seq( aux1 ), Seq() )
-  validateIndices( rightPremise, Seq( aux2 ), Seq() )
+  validateIndices( leftPremise, List( aux1 ), Nil )
+  validateIndices( rightPremise, List( aux2 ), Nil )
 
   val leftDisjunct = leftPremise( aux1 )
   val rightDisjunct = rightPremise( aux2 )
 
   val mainFormula = Or( leftDisjunct, rightDisjunct )
 
-  def auxIndices = Seq( Seq( aux1 ), Seq( aux2 ) )
+  def auxIndices = Vector( List( aux1 ), List( aux2 ) )
 
   override def name = "∨:l"
 
@@ -743,10 +743,10 @@ object OrLeftRule extends ConvenienceConstructor( "OrLeftRule" ) {
   def apply( leftSubProof: LKProof, leftDisjunct: IndexOrFormula, rightSubProof: LKProof, rightDisjunct: IndexOrFormula ): OrLeftRule = {
     val ( leftPremise, rightPremise ) = ( leftSubProof.endSequent, rightSubProof.endSequent )
 
-    val ( leftIndices, _ ) = findAndValidate( leftPremise )( Seq( leftDisjunct ), Seq() )
-    val ( rightIndices, _ ) = findAndValidate( rightPremise )( Seq( rightDisjunct ), Seq() )
+    val ( leftIndices, _ ) = findAndValidate( leftPremise )( List( leftDisjunct ), Nil )
+    val ( rightIndices, _ ) = findAndValidate( rightPremise )( List( rightDisjunct ), Nil )
 
-    new OrLeftRule( leftSubProof, Ant( leftIndices( 0 ) ), rightSubProof, Ant( rightIndices( 0 ) ) )
+    new OrLeftRule( leftSubProof, Ant( leftIndices.head ), rightSubProof, Ant( rightIndices.head ) )
   }
 
   /**
@@ -780,13 +780,13 @@ object OrLeftRule extends ConvenienceConstructor( "OrLeftRule" ) {
 case class OrRightRule( subProof: LKProof, aux1: SequentIndex, aux2: SequentIndex )
     extends UnaryLKProof with CommonRule {
 
-  validateIndices( premise, Seq(), Seq( aux1, aux2 ) )
+  validateIndices( premise, Nil, List( aux1, aux2 ) )
 
   val leftDisjunct = premise( aux1 )
   val rightDisjunct = premise( aux2 )
   val mainFormula = Or( leftDisjunct, rightDisjunct )
 
-  override def auxIndices = Seq( Seq( aux1, aux2 ) )
+  override def auxIndices = Vector( List( aux1, aux2 ) )
 
   override def name = "∨:r"
 
@@ -808,9 +808,9 @@ object OrRightRule extends ConvenienceConstructor( "OrRightRule" ) {
   def apply( subProof: LKProof, leftDisjunct: IndexOrFormula, rightDisjunct: IndexOrFormula ): OrRightRule = {
     val premise = subProof.endSequent
 
-    val ( _, indices ) = findAndValidate( premise )( Seq(), Seq( leftDisjunct, rightDisjunct ) )
+    val ( _, indices ) = findAndValidate( premise )( Nil, List( leftDisjunct, rightDisjunct ) )
 
-    new OrRightRule( subProof, Suc( indices( 0 ) ), Suc( indices( 1 ) ) )
+    new OrRightRule( subProof, Suc( indices.head ), Suc( indices( 1 ) ) )
   }
 
   /**
@@ -843,15 +843,15 @@ object OrRightRule extends ConvenienceConstructor( "OrRightRule" ) {
 case class ImpLeftRule( leftSubProof: LKProof, aux1: SequentIndex, rightSubProof: LKProof, aux2: SequentIndex )
     extends BinaryLKProof with CommonRule {
 
-  validateIndices( leftPremise, Seq(), Seq( aux1 ) )
-  validateIndices( rightPremise, Seq( aux2 ), Seq() )
+  validateIndices( leftPremise, Nil, List( aux1 ) )
+  validateIndices( rightPremise, List( aux2 ), Nil )
 
   val impPremise = leftPremise( aux1 )
   val impConclusion = rightPremise( aux2 )
 
   val mainFormula = Imp( impPremise, impConclusion )
 
-  def auxIndices = Seq( Seq( aux1 ), Seq( aux2 ) )
+  def auxIndices = Vector( List( aux1 ), List( aux2 ) )
 
   override def name = "\u2283:l"
 
@@ -874,10 +874,10 @@ object ImpLeftRule extends ConvenienceConstructor( "ImpLeftRule" ) {
   def apply( leftSubProof: LKProof, impPremise: IndexOrFormula, rightSubProof: LKProof, impConclusion: IndexOrFormula ): ImpLeftRule = {
     val ( leftPremise, rightPremise ) = ( leftSubProof.endSequent, rightSubProof.endSequent )
 
-    val ( _, leftIndices ) = findAndValidate( leftPremise )( Seq(), Seq( impPremise ) )
-    val ( rightIndices, _ ) = findAndValidate( rightPremise )( Seq( impConclusion ), Seq() )
+    val ( _, leftIndices ) = findAndValidate( leftPremise )( Nil, List( impPremise ) )
+    val ( rightIndices, _ ) = findAndValidate( rightPremise )( List( impConclusion ), Nil )
 
-    new ImpLeftRule( leftSubProof, Suc( leftIndices( 0 ) ), rightSubProof, Ant( rightIndices( 0 ) ) )
+    new ImpLeftRule( leftSubProof, Suc( leftIndices.head ), rightSubProof, Ant( rightIndices.head ) )
   }
 
   /**
@@ -911,13 +911,13 @@ object ImpLeftRule extends ConvenienceConstructor( "ImpLeftRule" ) {
 case class ImpRightRule( subProof: LKProof, aux1: SequentIndex, aux2: SequentIndex )
     extends UnaryLKProof with CommonRule {
 
-  validateIndices( premise, Seq( aux1 ), Seq( aux2 ) )
+  validateIndices( premise, List( aux1 ), List( aux2 ) )
 
   val impPremise = premise( aux1 )
   val impConclusion = premise( aux2 )
   val mainFormula = Imp( impPremise, impConclusion )
 
-  override def auxIndices = Seq( Seq( aux1, aux2 ) )
+  override def auxIndices = Vector( List( aux1, aux2 ) )
 
   override def name = "\u2283:r"
 
@@ -939,9 +939,9 @@ object ImpRightRule extends ConvenienceConstructor( "ImpRightRule" ) {
   def apply( subProof: LKProof, impPremise: IndexOrFormula, impConclusion: IndexOrFormula ): ImpRightRule = {
     val premise = subProof.endSequent
 
-    val ( antIndices, sucIndices ) = findAndValidate( premise )( Seq( impPremise ), Seq( impConclusion ) )
+    val ( antIndices, sucIndices ) = findAndValidate( premise )( List( impPremise ), List( impConclusion ) )
 
-    new ImpRightRule( subProof, Ant( antIndices( 0 ) ), Suc( sucIndices( 0 ) ) )
+    new ImpRightRule( subProof, Ant( antIndices.head ), Suc( sucIndices.head ) )
   }
 
   /**
@@ -1003,7 +1003,7 @@ trait SkolemQuantifierRule extends UnaryLKProof with CommonRule {
 case class ForallLeftRule( subProof: LKProof, aux: SequentIndex, A: Formula, term: Expr, v: Var )
     extends UnaryLKProof with CommonRule {
 
-  validateIndices( premise, Seq( aux ), Seq() )
+  validateIndices( premise, List( aux ), Nil )
 
   if ( premise( aux ) != BetaReduction.betaNormalize( Substitution( v, term )( A ) ) )
     throw LKRuleCreationException( s"Substituting $term for $v in $A does not result in ${premise( aux )}." )
@@ -1012,7 +1012,7 @@ case class ForallLeftRule( subProof: LKProof, aux: SequentIndex, A: Formula, ter
 
   override def name = "∀:l"
 
-  def auxIndices = Seq( Seq( aux ) )
+  def auxIndices = Vector( List( aux ) )
 
   override def mainFormulaSequent = mainFormula +: Sequent()
 }
@@ -1081,7 +1081,7 @@ object ForallLeftRule extends ConvenienceConstructor( "ForallLeftRule" ) {
 case class ForallRightRule( subProof: LKProof, aux: SequentIndex, eigenVariable: Var, quantifiedVariable: Var )
     extends UnaryLKProof with CommonRule with Eigenvariable {
 
-  validateIndices( premise, Seq(), Seq( aux ) )
+  validateIndices( premise, Nil, List( aux ) )
 
   val ( auxFormula, context ) = premise focus aux
 
@@ -1098,7 +1098,7 @@ case class ForallRightRule( subProof: LKProof, aux: SequentIndex, eigenVariable:
 
   override def name = "∀:r"
 
-  def auxIndices = Seq( Seq( aux ) )
+  def auxIndices = Vector( List( aux ) )
 
   override def mainFormulaSequent = Sequent() :+ mainFormula
 }
@@ -1119,9 +1119,9 @@ object ForallRightRule extends ConvenienceConstructor( "ForallRightRule" ) {
 
       val premise = subProof.endSequent
 
-      val ( _, indices ) = findAndValidate( premise )( Seq(), Seq( auxFormula ) )
+      val ( _, indices ) = findAndValidate( premise )( Nil, List( auxFormula ) )
 
-      ForallRightRule( subProof, Suc( indices( 0 ) ), eigenVariable, v )
+      ForallRightRule( subProof, Suc( indices.head ), eigenVariable, v )
 
     case _ => throw LKRuleCreationException( s"Proposed main formula $mainFormula is not universally quantified." )
   }
@@ -1164,13 +1164,13 @@ object ForallRightRule extends ConvenienceConstructor( "ForallRightRule" ) {
 case class ForallSkRightRule( subProof: LKProof, aux: SequentIndex, mainFormula: Formula, skolemTerm: Expr, skolemDef: Expr )
     extends SkolemQuantifierRule {
 
-  validateIndices( premise, Seq(), Seq( aux ) )
+  validateIndices( premise, Nil, List( aux ) )
 
   val All( quantifiedVariable, subFormula ) = mainFormula
 
   override def name = "∀sk:r"
 
-  def auxIndices = Seq( Seq( aux ) )
+  def auxIndices = Vector( List( aux ) )
 
   override def mainFormulaSequent = Sequent() :+ mainFormula
 }
@@ -1190,9 +1190,9 @@ object ForallSkRightRule extends ConvenienceConstructor( "ForallSkRightRule" ) {
 
     val premise = subProof.endSequent
 
-    val ( _, indices ) = findAndValidate( premise )( Seq(), Seq( auxFormula ) )
+    val ( _, indices ) = findAndValidate( premise )( Nil, List( auxFormula ) )
 
-    ForallSkRightRule( subProof, Suc( indices( 0 ) ), mainFormula, skolemTerm, skolemDef )
+    ForallSkRightRule( subProof, Suc( indices.head ), mainFormula, skolemTerm, skolemDef )
   }
 }
 
@@ -1214,7 +1214,7 @@ object ForallSkRightRule extends ConvenienceConstructor( "ForallSkRightRule" ) {
 case class ExistsLeftRule( subProof: LKProof, aux: SequentIndex, eigenVariable: Var, quantifiedVariable: Var )
     extends UnaryLKProof with CommonRule with Eigenvariable {
 
-  validateIndices( premise, Seq( aux ), Seq() )
+  validateIndices( premise, List( aux ), Nil )
 
   val ( auxFormula, context ) = premise focus aux
 
@@ -1231,7 +1231,7 @@ case class ExistsLeftRule( subProof: LKProof, aux: SequentIndex, eigenVariable: 
 
   override def name = "∃:l"
 
-  def auxIndices = Seq( Seq( aux ) )
+  def auxIndices = Vector( List( aux ) )
 
   override def mainFormulaSequent = mainFormula +: Sequent()
 }
@@ -1252,8 +1252,8 @@ object ExistsLeftRule extends ConvenienceConstructor( "ExistsLeftRule" ) {
 
       val premise = subProof.endSequent
 
-      val ( indices, _ ) = findAndValidate( premise )( Seq( auxFormula ), Seq() )
-      ExistsLeftRule( subProof, Ant( indices( 0 ) ), eigenVariable, v )
+      val ( indices, _ ) = findAndValidate( premise )( List( auxFormula ), Nil )
+      ExistsLeftRule( subProof, Ant( indices.head ), eigenVariable, v )
 
     case _ => throw LKRuleCreationException( s"Proposed main formula $mainFormula is not existentially quantified." )
   }
@@ -1296,13 +1296,13 @@ object ExistsLeftRule extends ConvenienceConstructor( "ExistsLeftRule" ) {
 case class ExistsSkLeftRule( subProof: LKProof, aux: SequentIndex, mainFormula: Formula, skolemTerm: Expr, skolemDef: Expr )
     extends SkolemQuantifierRule {
 
-  validateIndices( premise, Seq( aux ), Seq() )
+  validateIndices( premise, List( aux ), Nil )
 
   val Ex( quantifiedVariable, subFormula ) = mainFormula
 
   override def name = "∃sk:l"
 
-  def auxIndices = Seq( Seq( aux ) )
+  def auxIndices = Vector( List( aux ) )
 
   override def mainFormulaSequent = mainFormula +: Sequent()
 }
@@ -1322,9 +1322,9 @@ object ExistsSkLeftRule extends ConvenienceConstructor( "ExistsSkLeftRule" ) {
 
     val premise = subProof.endSequent
 
-    val ( indices, _ ) = findAndValidate( premise )( Seq( auxFormula ), Seq() )
+    val ( indices, _ ) = findAndValidate( premise )( List( auxFormula ), Nil )
 
-    ExistsSkLeftRule( subProof, Ant( indices( 0 ) ), mainFormula, skolemTerm, skolemDef )
+    ExistsSkLeftRule( subProof, Ant( indices.head ), mainFormula, skolemTerm, skolemDef )
   }
 }
 
@@ -1346,7 +1346,7 @@ object ExistsSkLeftRule extends ConvenienceConstructor( "ExistsSkLeftRule" ) {
 case class ExistsRightRule( subProof: LKProof, aux: SequentIndex, A: Formula, term: Expr, v: Var )
     extends UnaryLKProof with CommonRule {
 
-  validateIndices( premise, Seq(), Seq( aux ) )
+  validateIndices( premise, Nil, List( aux ) )
 
   if ( premise( aux ) != BetaReduction.betaNormalize( Substitution( v, term )( A ) ) )
     throw LKRuleCreationException( s"Substituting $term for $v in $A does not result in ${premise( aux )}." )
@@ -1355,7 +1355,7 @@ case class ExistsRightRule( subProof: LKProof, aux: SequentIndex, A: Formula, te
 
   override def name = "∃:r"
 
-  def auxIndices = Seq( Seq( aux ) )
+  def auxIndices = Vector( List( aux ) )
 
   override def mainFormulaSequent = Sequent() :+ mainFormula
 }
@@ -1438,8 +1438,8 @@ abstract class EqualityRule extends UnaryLKProof with CommonRule {
   def replacementContext: Abs
 
   aux match {
-    case Ant( _ ) => validateIndices( premise, Seq( eq, aux ), Seq() )
-    case Suc( _ ) => validateIndices( premise, Seq( eq ), Seq( aux ) )
+    case Ant( _ ) => validateIndices( premise, List( eq, aux ), Nil )
+    case Suc( _ ) => validateIndices( premise, List( eq ), List( aux ) )
   }
 
   def equation = premise( eq )
@@ -1463,9 +1463,9 @@ abstract class EqualityRule extends UnaryLKProof with CommonRule {
 
   def mainFormula = BetaReduction.betaNormalize( App( replacementContext, by ) ).asInstanceOf[Formula]
 
-  def auxIndices = Seq( Seq( eq, aux ) )
+  def auxIndices = Vector( List( eq, aux ) )
 
-  override def formulasToBeDeleted = Seq( Seq( aux ) )
+  override def formulasToBeDeleted = Vector( List( aux ) )
 
   def auxInConclusion = mainIndices.head
   def eqInConclusion = getSequentConnector.child( eq )
@@ -1494,7 +1494,7 @@ abstract class EqualityRule extends UnaryLKProof with CommonRule {
 case class EqualityLeftRule( subProof: LKProof, eq: SequentIndex, aux: SequentIndex, replacementContext: Abs )
     extends EqualityRule {
 
-  validateIndices( premise, Seq( eq, aux ), Seq() )
+  validateIndices( premise, List( eq, aux ), Nil )
 
   override def name = "eq:l"
 
@@ -1517,9 +1517,9 @@ object EqualityLeftRule extends ConvenienceConstructor( "EqualityLeftRule" ) {
   def apply( subProof: LKProof, eqFormula: IndexOrFormula, auxFormula: IndexOrFormula, replacementContext: Abs ): EqualityLeftRule = {
     val premise = subProof.endSequent
 
-    val ( indices, _ ) = findAndValidate( premise )( Seq( eqFormula, auxFormula ), Seq() )
+    val ( indices, _ ) = findAndValidate( premise )( List( eqFormula, auxFormula ), Nil )
 
-    EqualityLeftRule( subProof, Ant( indices( 0 ) ), Ant( indices( 1 ) ), replacementContext )
+    EqualityLeftRule( subProof, Ant( indices.head ), Ant( indices( 1 ) ), replacementContext )
 
   }
 
@@ -1536,8 +1536,8 @@ object EqualityLeftRule extends ConvenienceConstructor( "EqualityLeftRule" ) {
    */
   def apply( subProof: LKProof, eq: IndexOrFormula, aux: IndexOrFormula, mainFormula: Formula ): EqualityLeftRule = {
     val premise = subProof.endSequent
-    val ( indices, _ ) = findAndValidate( premise )( Seq( eq, aux ), Seq() )
-    val ( eqFormula, auxFormula ) = ( premise( Ant( indices( 0 ) ) ), premise( Ant( indices( 1 ) ) ) )
+    val ( indices, _ ) = findAndValidate( premise )( List( eq, aux ), Nil )
+    val ( eqFormula, auxFormula ) = ( premise( Ant( indices.head ) ), premise( Ant( indices( 1 ) ) ) )
 
     eqFormula match {
       case Eq( s, t ) =>
@@ -1599,7 +1599,7 @@ object EqualityLeftRule extends ConvenienceConstructor( "EqualityLeftRule" ) {
 case class EqualityRightRule( subProof: LKProof, eq: SequentIndex, aux: SequentIndex, replacementContext: Abs )
     extends EqualityRule {
 
-  validateIndices( premise, Seq( eq ), Seq( aux ) )
+  validateIndices( premise, List( eq ), List( aux ) )
 
   override def name = "eq:r"
 
@@ -1622,9 +1622,9 @@ object EqualityRightRule extends ConvenienceConstructor( "EqualityRightRule" ) {
   def apply( subProof: LKProof, eqFormula: IndexOrFormula, auxFormula: IndexOrFormula, replacementContext: Abs ): EqualityRightRule = {
     val premise = subProof.endSequent
 
-    val ( indicesAnt, indicesSuc ) = findAndValidate( premise )( Seq( eqFormula ), Seq( auxFormula ) )
+    val ( indicesAnt, indicesSuc ) = findAndValidate( premise )( List( eqFormula ), List( auxFormula ) )
 
-    EqualityRightRule( subProof, Ant( indicesAnt( 0 ) ), Suc( indicesSuc( 0 ) ), replacementContext )
+    EqualityRightRule( subProof, Ant( indicesAnt.head ), Suc( indicesSuc.head ), replacementContext )
 
   }
 
@@ -1641,8 +1641,8 @@ object EqualityRightRule extends ConvenienceConstructor( "EqualityRightRule" ) {
    */
   def apply( subProof: LKProof, eq: IndexOrFormula, aux: IndexOrFormula, mainFormula: Formula ): EqualityRightRule = {
     val premise = subProof.endSequent
-    val ( indicesAnt, indicesSuc ) = findAndValidate( premise )( Seq( eq ), Seq( aux ) )
-    val ( eqFormula, auxFormula ) = ( premise( Ant( indicesAnt( 0 ) ) ), premise( Suc( indicesSuc( 0 ) ) ) )
+    val ( indicesAnt, indicesSuc ) = findAndValidate( premise )( List( eq ), List( aux ) )
+    val ( eqFormula, auxFormula ) = ( premise( Ant( indicesAnt.head ) ), premise( Suc( indicesSuc.head ) ) )
 
     eqFormula match {
       case Eq( s, t ) =>
@@ -1701,7 +1701,7 @@ object EqualityRightRule extends ConvenienceConstructor( "EqualityRightRule" ) {
  * @param conclusion  Index of F(c(x,,1,,,...,x,,n,,,y,,1,,,...,y,,n,,))
  */
 case class InductionCase( proof: LKProof, constructor: Const,
-                          hypotheses: Seq[SequentIndex], eigenVars: Seq[Var],
+                          hypotheses: List[SequentIndex], eigenVars: List[Var],
                           conclusion: SequentIndex ) {
   val FunctionType( indTy, fieldTypes ) = constructor.ty
   require( fieldTypes == eigenVars.map( _.ty ) )
@@ -1734,7 +1734,7 @@ case class InductionCase( proof: LKProof, constructor: Const,
  * @param cases A sequence of proofs showing that each type constructor preserves the validity of the main formula.
  * @param formula The formula we want to prove via induction.
  */
-case class InductionRule( cases: Seq[InductionCase], formula: Abs, term: Expr ) extends CommonRule {
+case class InductionRule( cases: Vector[InductionCase], formula: Abs, term: Expr ) extends CommonRule {
   val Abs( quant @ Var( _, indTy ), qfFormula ) = formula
   require( term.ty == indTy )
   cases foreach { c =>
@@ -1748,8 +1748,8 @@ case class InductionRule( cases: Seq[InductionCase], formula: Abs, term: Expr ) 
 
   val mainFormula = BetaReduction.betaNormalize( formula( term ).asInstanceOf[Formula] )
   override protected def mainFormulaSequent = Sequent() :+ mainFormula
-  override def auxIndices: Seq[Seq[SequentIndex]] = cases map { c => c.hypotheses :+ c.conclusion }
-  override def immediateSubProofs: Seq[LKProof] = cases map { _.proof }
+  override def auxIndices: Vector[List[SequentIndex]] = cases map { c => c.hypotheses :+ c.conclusion }
+  override def immediateSubProofs: Vector[LKProof] = cases map { _.proof }
 
   private lazy val product = cases.flatMap { _.productIterator } :+ formula :+ term
   override def productArity = product.size
@@ -1786,12 +1786,10 @@ object DefinitionRule extends ConvenienceConstructor( "DefinitionRule" ) {
  *
  * @param subProof The proof π.
  * @param aux The index of A in the antecedent.
- * @param definition The definition c := φ.
- * @param replacementContext A term λx.A[x] that designates the positions for the definition.
  */
 case class DefinitionLeftRule( subProof: LKProof, aux: SequentIndex, mainFormula: Formula ) extends DefinitionRule {
   override def name = "d:l"
-  override def auxIndices = Seq( Seq( aux ) )
+  override def auxIndices = Vector( List( aux ) )
   override def mainFormulaSequent = mainFormula +: Sequent()
 }
 
@@ -1803,15 +1801,14 @@ object DefinitionLeftRule extends ConvenienceConstructor( "DefinitionLeftRule" )
    *
    * @param subProof The subproof.
    * @param aux The aux formula or its index.
-   * @param definition The definition to be introduced.
    * @param mainFormula The main formula. Must contain definition exactly once.
    * @return
    */
   def apply( subProof: LKProof, aux: IndexOrFormula, mainFormula: Formula ): DefinitionLeftRule = {
     val premise = subProof.endSequent
-    val ( indices, _ ) = findAndValidate( premise )( Seq( aux ), Seq() )
+    val ( indices, _ ) = findAndValidate( premise )( List( aux ), Nil )
 
-    DefinitionLeftRule( subProof, Ant( indices( 0 ) ), mainFormula )
+    DefinitionLeftRule( subProof, Ant( indices.head ), mainFormula )
   }
 }
 
@@ -1830,7 +1827,7 @@ object DefinitionLeftRule extends ConvenienceConstructor( "DefinitionLeftRule" )
  */
 case class DefinitionRightRule( subProof: LKProof, aux: SequentIndex, mainFormula: Formula ) extends DefinitionRule {
   override def name = "d:r"
-  override def auxIndices = Seq( Seq( aux ) )
+  override def auxIndices = Vector( List( aux ) )
   override def mainFormulaSequent = Sequent() :+ mainFormula
 }
 
@@ -1847,9 +1844,9 @@ object DefinitionRightRule extends ConvenienceConstructor( "DefinitionRightRule"
    */
   def apply( subProof: LKProof, aux: IndexOrFormula, mainFormula: Formula ): DefinitionRightRule = {
     val premise = subProof.endSequent
-    val ( _, indices ) = findAndValidate( premise )( Seq(), Seq( aux ) )
+    val ( _, indices ) = findAndValidate( premise )( Nil, List( aux ) )
 
-    DefinitionRightRule( subProof, Suc( indices( 0 ) ), mainFormula )
+    DefinitionRightRule( subProof, Suc( indices.head ), mainFormula )
   }
 }
 
@@ -1919,8 +1916,8 @@ class ConvenienceConstructor( val longName: String ) {
    */
   protected def LKRuleCreationException( text: String ): LKRuleCreationException = new LKRuleCreationException( longName, text )
 
-  def findIndicesOrFormulasInPremise( premise: HOLSequent )( antIndicesFormulas: Seq[IndexOrFormula], sucIndicesFormulas: Seq[IndexOrFormula] ): ( Seq[Formula], Seq[Int], Seq[Formula], Seq[Int] ) = {
-    val antReservedIndices = ( scala.collection.mutable.HashSet.empty[Int] /: antIndicesFormulas ) { ( acc, e ) =>
+  def findIndicesOrFormulasInPremise( premise: HOLSequent )( antIndicesFormulas: List[IndexOrFormula], sucIndicesFormulas: List[IndexOrFormula] ): ( List[Formula], List[Int], List[Formula], List[Int] ) = {
+    val antReservedIndices = antIndicesFormulas.foldLeft( scala.collection.mutable.HashSet.empty[Int] ) { ( acc, e ) =>
       e match {
         case Left( Ant( i ) ) => acc + i
         case Left( i: Suc )   => throw LKRuleCreationException( s"Index $i should be in the antecedent." )
@@ -1951,7 +1948,7 @@ class ConvenienceConstructor( val longName: String ) {
       }
     }
 
-    val sucReservedIndices = ( scala.collection.mutable.HashSet.empty[Int] /: sucIndicesFormulas ) { ( acc, e ) =>
+    val sucReservedIndices = sucIndicesFormulas.foldLeft( scala.collection.mutable.HashSet.empty[Int] ) { ( acc, e ) =>
       e match {
         case Left( Suc( i ) ) => acc + i
         case Left( i: Ant )   => throw LKRuleCreationException( s"Index $i should be in the succedent." )
@@ -2031,7 +2028,7 @@ class ConvenienceConstructor( val longName: String ) {
    * @param sucIndicesFormulas The list of indices or formulas in the succedent.
    * @return
    */
-  protected def findAndValidate( premise: HOLSequent )( antIndicesFormulas: Seq[IndexOrFormula], sucIndicesFormulas: Seq[IndexOrFormula] ): ( Seq[Int], Seq[Int] ) = {
+  protected def findAndValidate( premise: HOLSequent )( antIndicesFormulas: List[IndexOrFormula], sucIndicesFormulas: List[IndexOrFormula] ): ( List[Int], List[Int] ) = {
     val ( antFormulas, antIndices, sucFormulas, sucIndices ) = findIndicesOrFormulasInPremise( premise )( antIndicesFormulas, sucIndicesFormulas )
     validateIndices( premise )( antFormulas, antIndices, sucFormulas, sucIndices )
     ( antIndices, sucIndices )

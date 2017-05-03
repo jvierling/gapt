@@ -192,9 +192,9 @@ class LeanExporter {
             case p: EqualityRule =>
               (
                 occConn_.copy( parentsSequent = occConn_.parentsSequent.
-                  updated( p.eqInConclusion, Seq( p.eq ) ).
-                  updated( p.auxInConclusion, Seq( p.aux ) ) ),
-                Seq( p.aux )
+                  updated( p.eqInConclusion, List( p.eq ) ).
+                  updated( p.auxInConclusion, List( p.aux ) ) ),
+                List( p.aux )
               )
             case _ => ( occConn_, auxs_ )
           }

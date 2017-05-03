@@ -7,7 +7,7 @@ import at.logic.gapt.proofs.HOLSequent
 import at.logic.gapt.proofs.expansion.{ ETImp, ETStrongQuantifierBlock, ETWeakQuantifierBlock, ExpansionProofWithCut, eliminateMerges, formulaToExpansionTree }
 import at.logic.gapt.provers.Prover
 
-case class SolutionStructure( sehs: SchematicExtendedHerbrandSequent, formulas: Seq[FOLFormula] ) {
+case class SolutionStructure( sehs: SchematicExtendedHerbrandSequent, formulas: List[FOLFormula] ) {
   require( formulas.size == sehs.ss.size )
   require( isFOLPrenexSigma1( endSequent ) )
 

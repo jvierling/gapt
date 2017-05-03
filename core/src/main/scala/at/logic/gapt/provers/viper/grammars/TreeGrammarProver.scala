@@ -58,7 +58,7 @@ class TreeGrammarProver( val ctx: Context, val sequent: HOLSequent, val options:
 
   val encoding = InstanceTermEncoding( sequent.map( identity, instantiate( _, vs ) ) )
 
-  type Instance = Seq[Expr]
+  type Instance = List[Expr]
 
   val grammarFinder = options.findingMethod match {
     case "maxsat" | "maxsatinst" =>
@@ -128,13 +128,13 @@ class TreeGrammarProver( val ctx: Context, val sequent: HOLSequent, val options:
     spwi
   }
 
-  def findMinimalCounterexample( correctInstances: Iterable[Instance], spwi: SchematicProofWithInduction ): Option[Seq[Expr]] = {
-    def checkInst( inst: Seq[Expr] ): Boolean = smtSolver.isValid( And( spwi.generatedLanguage( inst ) ) --> instantiate( conj, inst ) )
+  def findMinimalCounterexample( correctInstances: Iterable[Instance], spwi: SchematicProofWithInduction ): Option[List[Expr]] = {
+    def checkInst( inst: List[Expr] ): Boolean = smtSolver.isValid( And( spwi.generatedLanguage( inst ) ) --> instantiate( conj, inst ) )
     val scale = ( 5 +: correctInstances.toSeq.map( folTermSize( _ ) ) ).max
     val testInstances =
       instanceGen.generate( 0, 5, 10 ) ++
         instanceGen.generate( options.tautCheckSize._1 * scale, options.tautCheckSize._2 * scale, options.tautCheckNumber )
-    val failedInstOption = testInstances.toSeq.
+    val failedInstOption = testInstances.toList.
       sortBy( folTermSize( _ ) ).view.
       filterNot { inst =>
         val ok = checkInst( inst )
@@ -176,7 +176,7 @@ class TreeGrammarProver( val ctx: Context, val sequent: HOLSequent, val options:
     val formula = BetaReduction.betaNormalize( instantiate( qbup, solution ) )
     require( smtSolver isValid skolemize( formula ), s"Solution not valid" )
 
-    val proof = spwi.lkProof( Seq( solution ), EquationalLKProver )
+    val proof = spwi.lkProof( List( solution ), EquationalLKProver )
     info( s"Found proof with ${proof.dagLike.size} inferences" )
 
     ctx.check( proof )

@@ -36,8 +36,8 @@ class SPASS extends ResolutionProver with ExternalProgram {
     s"formula(${expr2dfg( universalClosure( cls_.toDisjunction ) )})."
   }
 
-  override def getResolutionProof( clauses: Traversable[HOLClause] ): Option[ResolutionProof] = renameConstantsToFi.wrap( clauses.toSeq )(
-    ( renaming, cnf: Seq[HOLClause] ) => {
+  override def getResolutionProof( clauses: Traversable[HOLClause] ): Option[ResolutionProof] = renameConstantsToFi.wrap( clauses.toList )(
+    ( renaming, cnf: List[HOLClause] ) => {
       if ( cnf isEmpty ) return None // SPASS doesn't like empty input
 
       val list_of_formulae =
@@ -105,17 +105,17 @@ class SPASS extends ResolutionProver with ExternalProgram {
 
           val emptyClause = SketchComponentElim( SketchComponentElim( splittingClause, comp1 ), comp2 )
 
-          val addAxioms1 = Seq( SketchComponentIntro( comp1 ) )
+          val addAxioms1 = List( SketchComponentIntro( comp1 ) )
 
           val groundNegPart1 =
             for ( ( a, i ) <- comp1.componentClause.zipWithIndex.elements if freeVariables( a ).isEmpty )
               yield AvatarNegNonGroundComp( comp1.atom, comp1.definition, comp1.vars, i )
-          val addAxioms2 = Seq( comp2 ) ++ groundNegPart1 map { SketchComponentIntro( _ ) }
+          val addAxioms2 = List( comp2 ) ++ groundNegPart1 map { SketchComponentIntro( _ ) }
         }
 
         val inference2sketch = mutable.Map[Int, RefutationSketch]()
         val splitStack = mutable.Stack[( Int, SpassSplit, Option[Int] )]()
-        val splitCases = Seq.newBuilder[RefutationSketch]
+        val splitCases = List.newBuilder[RefutationSketch]
         def finishSplit( infNum: Int, splitLevel: Int ): Unit =
           if ( splitLevel > 0 ) splitStack.pop() match {
             case ( splitCls, split, None ) =>
@@ -126,7 +126,7 @@ class SPASS extends ResolutionProver with ExternalProgram {
         inferences foreach {
           case ( num, 0, "Inp", _, clause ) =>
             val Some( clauseInOurCNF ) = cnf.find( clauseSubsumption( _, clause, matchingAlgorithm = fixDerivation.matchingModEq ).isDefined )
-            inference2sketch( num ) = SketchInference( clause, Seq( SketchAxiom( clauseInOurCNF map { _.asInstanceOf[FOLAtom] } ) ) )
+            inference2sketch( num ) = SketchInference( clause, List( SketchAxiom( clauseInOurCNF map { _.asInstanceOf[FOLAtom] } ) ) )
             if ( clause isEmpty ) splitCases += inference2sketch( num )
           case ( num, splitLevel, "Spt", Seq( splitClauseNum ), part1 ) =>
             val splitClause = inference2sketch( splitClauseNum ).conclusion
@@ -141,7 +141,7 @@ class SPASS extends ResolutionProver with ExternalProgram {
             val split = splitStack.top._2
             inference2sketch( num ) = SketchInference( clause, split.addAxioms2 )
           case ( num, splitLevel, _, premises, clause ) =>
-            val p = SketchInference( clause, premises map inference2sketch )
+            val p = SketchInference( clause, premises.toList map inference2sketch )
             inference2sketch( num ) = p
 
             if ( clause isEmpty ) {

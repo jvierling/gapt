@@ -68,10 +68,10 @@ object Substitutable {
     ( sub, set ) => set.map( ev.applySubstitution( sub, _ ) )
 
   /**
-   * Testifies that a Seq of substitutable objects is itself substitutable (by mapping over it).
+   * Testifies that a List of substitutable objects is itself substitutable (by mapping over it).
    */
-  implicit def SubstitutableSeq[S <: Substitution, T, U]( implicit ev: Substitutable[S, T, U] ): Substitutable[S, Seq[T], Seq[U]] =
-    ( sub, seq ) => seq.map( ev.applySubstitution( sub, _ ) )
+  implicit def SubstitutableList[S <: Substitution, T, U]( implicit ev: Substitutable[S, T, U] ): Substitutable[S, List[T], List[U]] =
+    ( sub, lst ) => lst.map( ev.applySubstitution( sub, _ ) )
 
   /**
    * Testifies that an Option of substitutable objects is itself substitutable (by mapping over it).

@@ -258,8 +258,10 @@ class ReductiveCutEliminationTest extends Specification with SequentMatchers {
       u ( WeakeningLeftRule( _, hof"F(x)" ) )
       u ( WeakeningRightRule( _, hof"F(s(x))" ) )
       b ( ( ib, ic ) => InductionRule(
-        InductionCase( ib, hoc"0:nat", Nil, Nil, Suc( 1 ) ) ::
-          InductionCase( ic, hoc"s:nat>nat", Ant( 0 ) :: Nil, hov"x:nat" :: Nil, Suc( 1 ) ) :: Nil,
+        Vector(
+          InductionCase( ib, hoc"0:nat", Nil, Nil, Suc( 1 ) ),
+          InductionCase( ic, hoc"s:nat>nat", Ant( 0 ) :: Nil, hov"x:nat" :: Nil, Suc( 1 ) )
+        ),
         Abs( hov"x:nat", le"F(x)" ),
         hov"x:nat"
       ) )
@@ -271,7 +273,7 @@ class ReductiveCutEliminationTest extends Specification with SequentMatchers {
       failure( "the reduced proof does not prove the same end-sequent" )
     }
     reduced match {
-      case InductionRule( InductionCase( CutRule( _, _, _, _ ), _, _, _, _ ) :: _ :: Nil, _, _ ) => success
+      case InductionRule( Vector( InductionCase( CutRule( _, _, _, _ ), _, _, _, _ ), _ ), _, _ ) => success
       case _ => failure( "the proof has not been reduced as expected" )
     }
   }
@@ -291,8 +293,10 @@ class ReductiveCutEliminationTest extends Specification with SequentMatchers {
       u ( WeakeningLeftRule( _, hof"F(x)" ) )
       u ( WeakeningRightRule( _, hof"F(s(x))" ) )
       b ( ( ib, ic ) => InductionRule(
-        InductionCase( ib, hoc"0:nat", Nil, Nil, Suc( 1 ) ) ::
-          InductionCase( ic, hoc"s:nat>nat", Ant( 0 ) :: Nil, hov"x:nat" :: Nil, Suc( 1 ) ) :: Nil,
+        Vector(
+          InductionCase( ib, hoc"0:nat", Nil, Nil, Suc( 1 ) ),
+          InductionCase( ic, hoc"s:nat>nat", Ant( 0 ) :: Nil, hov"x:nat" :: Nil, Suc( 1 ) )
+        ),
         Abs( hov"x:nat", le"F(x)" ),
         hov"x:nat"
       ) )
@@ -303,7 +307,7 @@ class ReductiveCutEliminationTest extends Specification with SequentMatchers {
       failure( "the reduced proof does not prove the same end-sequent" )
     }
     reduced match {
-      case InductionRule( InductionCase( CutRule( _, _, _, _ ), _, _, _, _ ) :: _ :: Nil, _, _ ) => success
+      case InductionRule( Vector( InductionCase( CutRule( _, _, _, _ ), _, _, _, _ ), _ ), _, _ ) => success
       case _ => failure( "the proof has not been reduced as expected" )
     }
   }
@@ -334,8 +338,10 @@ class ReductiveCutEliminationTest extends Specification with SequentMatchers {
     }
 
     val inductivePart = InductionRule(
-      InductionCase( baseCase, hoc"0:nat", Nil, Nil, Suc( 0 ) ) ::
-        InductionCase( indCase, hoc"s:nat>nat", Ant( 5 ) :: Nil, hov"x_0:nat" :: Nil, Suc( 0 ) ) :: Nil,
+      Vector(
+        InductionCase( baseCase, hoc"0:nat", Nil, Nil, Suc( 0 ) ),
+        InductionCase( indCase, hoc"s:nat>nat", Ant( 5 ) :: Nil, hov"x_0:nat" :: Nil, Suc( 0 ) )
+      ),
       Abs( hov"x:nat", le"equal(x,x)" ), le"s(s(s(0)))"
     )
 

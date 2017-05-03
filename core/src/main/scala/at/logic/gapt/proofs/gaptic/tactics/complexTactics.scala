@@ -11,7 +11,7 @@ import at.logic.gapt.provers.escargot.Escargot
 import at.logic.gapt.provers.prover9.Prover9
 import at.logic.gapt.provers.viper.aip.AnalyticInductionProver
 import at.logic.gapt.provers.viper.aip.axioms._
-import cats.syntax.all._
+import cats.implicits._
 
 /**
  * Performs backwards chaining:
@@ -143,7 +143,7 @@ case class InductionTactic( mode: TacticApplyMode, v: Var )( implicit ctx: Conte
    * @param t A base type.
    * @return Either a list containing the constructors of `t` or a TacticalFailure.
    */
-  private def getConstructors( t: TBase ): Either[TacticalFailure, Seq[Const]] = {
+  private def getConstructors( t: TBase ): Either[TacticalFailure, Vector[Const]] = {
     ( ctx.isType( t ), ctx.getConstructors( t ) ) match {
       case ( true, Some( constructors ) ) => Right( constructors )
       case ( true, None )                 => Left( TacticalFailure( this, s"Type $t is not inductively defined" ) )

@@ -6,6 +6,7 @@ import at.logic.gapt.expr.hol._
 import at.logic.gapt.formats.babel.{ BabelExporter, BabelSignature, MapBabelSignature }
 import at.logic.gapt.provers.maxsat.{ MaxSATSolver, QMaxSAT, bestAvailableMaxSatSolver }
 import at.logic.gapt.utils.{ Doc, Logger, metrics }
+import cats.implicits._
 
 import scala.collection.mutable
 

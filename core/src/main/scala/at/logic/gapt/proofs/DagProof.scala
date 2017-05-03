@@ -15,7 +15,7 @@ trait DagProof[Proof <: DagProof[Proof]] extends Product { self: Proof =>
   /**
    * The immediate subproofs of this rule.
    */
-  def immediateSubProofs: Seq[Proof]
+  def immediateSubProofs: Vector[Proof]
 
   /**
    * The name of this rule (in symbols).
@@ -178,8 +178,8 @@ object DagProof {
     /**
      * A sequence of all sub-proofs including this in post-order, ignoring duplicates.
      */
-    def postOrder: Seq[Proof] = {
-      val subProofs = Seq.newBuilder[Proof]
+    def postOrder: List[Proof] = {
+      val subProofs = List.newBuilder[Proof]
       for ( p <- self.dagLike ) subProofs += p
       subProofs.result()
     }
@@ -187,9 +187,9 @@ object DagProof {
     /**
      * A sequence of all sub-proofs including this in post-order, ignoring duplicates.
      */
-    def breadthFirst: Seq[Proof] = {
+    def breadthFirst: List[Proof] = {
       val seen = mutable.Set[Proof]()
-      val result = Seq.newBuilder[Proof]
+      val result = List.newBuilder[Proof]
       val queue = mutable.Queue[Proof]( self )
 
       while ( queue.nonEmpty ) {

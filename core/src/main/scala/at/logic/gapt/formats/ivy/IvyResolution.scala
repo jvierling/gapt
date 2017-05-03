@@ -16,9 +16,9 @@ sealed trait IvyResolutionProof extends SequentProof[FOLAtom, IvyResolutionProof
   val clause_exp: SExpression
 
   // FIXME: provide a SequentProof trait without SequentConnectors
-  override def mainIndices: Seq[SequentIndex] = ???
-  override def occConnectors: Seq[SequentConnector] = ???
-  override def auxIndices: Seq[Seq[SequentIndex]] = ???
+  override def mainIndices: List[SequentIndex] = ???
+  override def occConnectors: Vector[SequentConnector] = ???
+  override def auxIndices: Vector[List[SequentIndex]] = ???
 }
 
 case class InitialClause(
@@ -26,7 +26,7 @@ case class InitialClause(
     clause_exp: SExpression,
     conclusion: FOLClause
 ) extends IvyResolutionProof {
-  override def immediateSubProofs = Seq()
+  override def immediateSubProofs = Vector()
 }
 
 case class Instantiate(
@@ -35,7 +35,7 @@ case class Instantiate(
     substitution: FOLSubstitution,
     conclusion:   FOLClause, t: IvyResolutionProof
 ) extends IvyResolutionProof {
-  override def immediateSubProofs = Seq( t )
+  override def immediateSubProofs = Vector( t )
 }
 
 case class Flip(
@@ -43,7 +43,7 @@ case class Flip(
     clause_exp: SExpression, flipped: SequentIndex,
     conclusion: FOLClause, t: IvyResolutionProof
 ) extends IvyResolutionProof {
-  override def immediateSubProofs = Seq( t )
+  override def immediateSubProofs = Vector( t )
 }
 
 case class Propositional(
@@ -53,7 +53,7 @@ case class Propositional(
   t:          IvyResolutionProof
 )
     extends IvyResolutionProof {
-  override def immediateSubProofs = Seq( t )
+  override def immediateSubProofs = Vector( t )
 }
 
 case class Paramodulation(
@@ -69,7 +69,7 @@ case class Paramodulation(
   t2:              IvyResolutionProof
 )
     extends IvyResolutionProof {
-  override def immediateSubProofs = Seq( t1, t2 )
+  override def immediateSubProofs = Vector( t1, t2 )
 }
 
 case class Resolution(
@@ -84,7 +84,7 @@ case class Resolution(
     extends IvyResolutionProof {
   require( t1.conclusion( lit1 ) == t2.conclusion( lit2 ) )
   require( !( lit1 sameSideAs lit2 ) )
-  override def immediateSubProofs = Seq( t1, t2 )
+  override def immediateSubProofs = Vector( t1, t2 )
 }
 
 case class NewSymbol(
@@ -96,5 +96,5 @@ case class NewSymbol(
     conclusion:       FOLClause,
     t:                IvyResolutionProof
 ) extends IvyResolutionProof {
-  override def immediateSubProofs = Seq( t )
+  override def immediateSubProofs = Vector( t )
 }

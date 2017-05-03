@@ -113,8 +113,8 @@ trait ResolutionProof extends SequentProof[Formula, ResolutionProof] with DagPro
 abstract class LocalResolutionRule extends ResolutionProof with ContextRule[Formula, ResolutionProof]
 
 abstract class InitialClause extends LocalResolutionRule {
-  override def auxIndices = Seq()
-  override def immediateSubProofs = Seq()
+  override def auxIndices = Vector()
+  override def immediateSubProofs = Vector()
 }
 /**
  * Input sequent.
@@ -182,8 +182,8 @@ case class Factor( subProof: ResolutionProof, idx1: SequentIndex, idx2: SequentI
   override def mainFormulaSequent =
     if ( idx1 isAnt ) subProof.conclusion( idx1 ) +: Sequent()
     else Sequent() :+ subProof.conclusion( idx1 )
-  override def immediateSubProofs = Seq( subProof )
-  override def auxIndices = Seq( Seq( idx1, idx2 ) )
+  override def immediateSubProofs = Vector( subProof )
+  override def auxIndices = Vector( List( idx1, idx2 ) )
 }
 object Factor {
   def apply( p: ResolutionProof ): ResolutionProof =
@@ -239,11 +239,11 @@ object MguFactor {
  */
 case class Subst( subProof: ResolutionProof, substitution: Substitution ) extends ResolutionProof {
   override val conclusion: Sequent[Formula] = subProof.conclusion.map( substitution( _ ) ).map( BetaReduction.betaNormalize )
-  override def mainIndices: Seq[SequentIndex] = subProof.conclusion.indices
-  override def auxIndices: Seq[Seq[SequentIndex]] = Seq( subProof.conclusion.indices )
-  override def occConnectors: Seq[SequentConnector] =
-    Seq( SequentConnector( conclusion, subProof.conclusion, subProof.conclusion.indicesSequent.map( Seq( _ ) ) ) )
-  override def immediateSubProofs: Seq[ResolutionProof] = Seq( subProof )
+  override def mainIndices: List[SequentIndex] = subProof.conclusion.indices
+  override def auxIndices: Vector[List[SequentIndex]] = Vector( subProof.conclusion.indices )
+  override def occConnectors: Vector[SequentConnector] =
+    Vector( SequentConnector( conclusion, subProof.conclusion, subProof.conclusion.indicesSequent.map( List( _ ) ) ) )
+  override def immediateSubProofs: Vector[ResolutionProof] = Vector( subProof )
 }
 object Subst {
   def ifNecessary( subProof: ResolutionProof, substitution: Substitution ): ResolutionProof =
@@ -268,8 +268,8 @@ case class Resolution( subProof1: ResolutionProof, idx1: SequentIndex,
   def resolvedLiteral = subProof1.conclusion( idx1 )
 
   def mainFormulaSequent = Sequent()
-  def immediateSubProofs = Seq( subProof1, subProof2 )
-  def auxIndices = Seq( Seq( idx1 ), Seq( idx2 ) )
+  def immediateSubProofs = Vector( subProof1, subProof2 )
+  def auxIndices = Vector( List( idx1 ), List( idx2 ) )
 }
 object Resolution {
   def apply( subProof1: ResolutionProof, subProof2: ResolutionProof, atom: Formula ): ResolutionProof =
@@ -317,8 +317,8 @@ case class Paramod( subProof1: ResolutionProof, eqIdx: SequentIndex, leftToRight
     if ( auxIdx isAnt ) rewrittenAuxFormula +: Sequent()
     else Sequent() :+ rewrittenAuxFormula
 
-  def immediateSubProofs = Seq( subProof1, subProof2 )
-  def auxIndices = Seq( Seq( eqIdx ), Seq( auxIdx ) )
+  def immediateSubProofs = Vector( subProof1, subProof2 )
+  def auxIndices = Vector( List( eqIdx ), List( auxIdx ) )
 }
 object Paramod {
   def withMain( subProof1: ResolutionProof, eqIdx: SequentIndex,
@@ -333,9 +333,9 @@ object Paramod {
 
     if ( BetaReduction.betaNormalize( ctxLTR( t ) ) == subProof2.conclusion( auxIdx )
       && BetaReduction.betaNormalize( ctxLTR( s ) ) == main ) {
-      Paramod( subProof1, eqIdx, true, subProof2, auxIdx, ctxLTR )
+      Paramod( subProof1, eqIdx, leftToRight = true, subProof2, auxIdx, ctxLTR )
     } else {
-      Paramod( subProof1, eqIdx, false, subProof2, auxIdx, ctxRTL )
+      Paramod( subProof1, eqIdx, leftToRight = false, subProof2, auxIdx, ctxRTL )
     }
   }
 }
@@ -344,8 +344,8 @@ abstract class PropositionalResolutionRule extends LocalResolutionRule {
   def subProof: ResolutionProof
   def idx: SequentIndex
 
-  override def immediateSubProofs = Seq( subProof )
-  override def auxIndices = Seq( Seq( idx ) )
+  override def immediateSubProofs = Vector( subProof )
+  override def auxIndices = Vector( List( idx ) )
 }
 
 /**
@@ -358,7 +358,7 @@ abstract class PropositionalResolutionRule extends LocalResolutionRule {
  *
  * This inference should only be used on descendants of Input inferences.
  */
-case class DefIntro( subProof: ResolutionProof, idx: SequentIndex, definition: Definition, args: Seq[Expr] ) extends PropositionalResolutionRule {
+case class DefIntro( subProof: ResolutionProof, idx: SequentIndex, definition: Definition, args: List[Expr] ) extends PropositionalResolutionRule {
   val Definition( defConst: HOLAtomConst, by ) = definition
   val defAtom = defConst( args ).asInstanceOf[Atom]
   val expandedFormula = BetaReduction.betaNormalize( Apps( by, args ) )
@@ -500,11 +500,11 @@ object Flip {
     val Eq( s, t ) = subProof.conclusion( equation )
     val x = rename( Var( "x", s.ty ), freeVariables( subProof.conclusion ) )
     if ( equation isSuc ) {
-      Paramod( subProof, equation, true,
+      Paramod( subProof, equation, leftToRight = true,
         Refl( s ), Suc( 0 ), Abs( x, Eq( x, s ) ) )
     } else {
       Resolution(
-        Paramod( Taut( Eq( t, s ) ), Suc( 0 ), false,
+        Paramod( Taut( Eq( t, s ) ), Suc( 0 ), leftToRight = false,
           Refl( s ), Suc( 0 ), Abs( x, Eq( s, x ) ) ), Suc( 0 ),
         subProof, equation
       )

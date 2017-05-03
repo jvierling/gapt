@@ -70,7 +70,7 @@ abstract class UnaryNDProof extends NDProof {
    */
   def premise = subProof.endSequent
 
-  override def immediateSubProofs = Seq( subProof )
+  override def immediateSubProofs = Vector( subProof )
 }
 
 object UnaryNDProof {
@@ -129,7 +129,7 @@ abstract class BinaryNDProof extends NDProof {
    */
   def rightPremise = rightSubProof.endSequent
 
-  override def immediateSubProofs = Seq( leftSubProof, rightSubProof )
+  override def immediateSubProofs = Vector( leftSubProof, rightSubProof )
 }
 
 object BinaryNDProof {
@@ -209,7 +209,7 @@ abstract class TernaryNDProof extends NDProof {
    */
   def rightPremise = rightSubProof.endSequent
 
-  override def immediateSubProofs = Seq( leftSubProof, middleSubProof, rightSubProof )
+  override def immediateSubProofs = Vector( leftSubProof, middleSubProof, rightSubProof )
 }
 
 object TernaryNDProof {
@@ -237,11 +237,11 @@ abstract class InitialSequent extends NDProof {
 
   override def mainIndices = endSequent.indices
 
-  override def auxIndices = Seq()
+  override def auxIndices = Vector()
 
-  override def immediateSubProofs = Seq()
+  override def immediateSubProofs = Vector()
 
-  override def occConnectors = Seq()
+  override def occConnectors = Vector()
 }
 
 object InitialSequent {
@@ -262,7 +262,7 @@ object InitialSequent {
  */
 case class WeakeningRule( subProof: NDProof, formula: Formula )
     extends UnaryNDProof with CommonRule {
-  override def auxIndices = Seq( Seq() )
+  override def auxIndices = Vector( Nil )
   override def name = "wkn"
   def mainFormula = formula
 
@@ -284,14 +284,14 @@ case class WeakeningRule( subProof: NDProof, formula: Formula )
  */
 case class ContractionRule( subProof: NDProof, aux1: SequentIndex, aux2: SequentIndex ) extends UnaryNDProof with CommonRule {
 
-  validateIndices( premise, Seq( aux1, aux2 ) )
+  validateIndices( premise, List( aux1, aux2 ) )
 
   if ( premise( aux1 ) != premise( aux2 ) )
     throw NDRuleCreationException( s"Auxiliary formulas ${premise( aux1 )} and ${premise( aux2 )} are not equal." )
 
   val mainFormula = premise( aux1 )
 
-  override def auxIndices = Seq( Seq( aux1, aux2 ) )
+  override def auxIndices = Vector( List( aux1, aux2 ) )
 
   override def name = "ctr"
 
@@ -309,9 +309,9 @@ object ContractionRule extends ConvenienceConstructor( "ContractionRule" ) {
   def apply( subProof: NDProof, f: Formula ): ContractionRule = {
     val premise = subProof.endSequent
 
-    val ( indices, _ ) = findAndValidate( premise )( Seq( Right( f ), Right( f ) ), Left( Suc( 0 ) ) )
+    val ( indices, _ ) = findAndValidate( premise )( List( Right( f ), Right( f ) ), Left( Suc( 0 ) ) )
 
-    new ContractionRule( subProof, Ant( indices( 0 ) ), Ant( indices( 1 ) ) )
+    new ContractionRule( subProof, Ant( indices.head ), Ant( indices( 1 ) ) )
   }
 
 }
@@ -327,7 +327,7 @@ object ContractionRule extends ConvenienceConstructor( "ContractionRule" ) {
  */
 case class LogicalAxiom( A: Formula ) extends InitialSequent {
   override def name = "ax"
-  override def conclusion = NDSequent( Seq( A ), A )
+  override def conclusion = NDSequent( Vector( A ), A )
   def mainFormula = A
 }
 
@@ -376,7 +376,7 @@ case class AndElim1Rule( subProof: NDProof )
     case _                      => throw NDRuleCreationException( s"Proposed main formula $conjunction is not a conjunction." )
   }
 
-  override def auxIndices = Seq( Seq( Suc( 0 ) ) )
+  override def auxIndices = Vector( List( Suc( 0 ) ) )
 
   override def name = "∧:e1"
 
@@ -404,7 +404,7 @@ case class AndElim2Rule( subProof: NDProof )
     case _                       => throw NDRuleCreationException( s"Proposed main formula $conjunction is not a conjunction." )
   }
 
-  override def auxIndices = Seq( Seq( Suc( 0 ) ) )
+  override def auxIndices = Vector( List( Suc( 0 ) ) )
 
   override def name = "∧:e2"
 
@@ -431,7 +431,7 @@ case class AndIntroRule( leftSubProof: NDProof, rightSubProof: NDProof )
 
   val mainFormula = And( leftConjunct, rightConjunct )
 
-  def auxIndices = Seq( Seq( Suc( 0 ) ), Seq( Suc( 0 ) ) )
+  def auxIndices = Vector( List( Suc( 0 ) ), List( Suc( 0 ) ) )
 
   override def name = "∧:i"
 
@@ -456,8 +456,8 @@ case class AndIntroRule( leftSubProof: NDProof, rightSubProof: NDProof )
 case class OrElimRule( leftSubProof: NDProof, middleSubProof: NDProof, aux1: SequentIndex, rightSubProof: NDProof, aux2: SequentIndex )
     extends TernaryNDProof with CommonRule {
 
-  validateIndices( middlePremise, Seq( aux1 ) )
-  validateIndices( rightPremise, Seq( aux2 ) )
+  validateIndices( middlePremise, List( aux1 ) )
+  validateIndices( rightPremise, List( aux2 ) )
 
   val leftDisjunct = middlePremise( aux1 )
   val rightDisjunct = rightPremise( aux2 )
@@ -471,7 +471,7 @@ case class OrElimRule( leftSubProof: NDProof, middleSubProof: NDProof, aux1: Seq
 
   val mainFormula = if ( middleC == rightC ) middleC else throw NDRuleCreationException( s"Formulas $middleC an $rightC are not the same." )
 
-  def auxIndices = Seq( Seq( Suc( 0 ) ), Seq( aux1, Suc( 0 ) ), Seq( aux2, Suc( 0 ) ) )
+  def auxIndices = Vector( List( Suc( 0 ) ), List( aux1, Suc( 0 ) ), List( aux2, Suc( 0 ) ) )
 
   override def name = "∨:e"
 
@@ -499,10 +499,10 @@ object OrElimRule extends ConvenienceConstructor( "OrElimRule" ) {
 
     val ( middlePremise, rightPremise ) = ( middleSubProof.endSequent, rightSubProof.endSequent )
 
-    val ( middleIndices, _ ) = findAndValidate( middlePremise )( Seq( Right( leftDisjunct ) ), Left( Suc( 0 ) ) )
-    val ( rightIndices, _ ) = findAndValidate( rightPremise )( Seq( Right( rightDisjunct ) ), Left( Suc( 0 ) ) )
+    val ( middleIndices, _ ) = findAndValidate( middlePremise )( List( Right( leftDisjunct ) ), Left( Suc( 0 ) ) )
+    val ( rightIndices, _ ) = findAndValidate( rightPremise )( List( Right( rightDisjunct ) ), Left( Suc( 0 ) ) )
 
-    new OrElimRule( leftSubProof, middleSubProof, Ant( middleIndices( 0 ) ), rightSubProof, Ant( rightIndices( 0 ) ) )
+    new OrElimRule( leftSubProof, middleSubProof, Ant( middleIndices.head ), rightSubProof, Ant( rightIndices.head ) )
   }
 }
 
@@ -524,7 +524,7 @@ case class OrIntro1Rule( subProof: NDProof, rightDisjunct: Formula )
   val leftDisjunct = premise( Suc( 0 ) )
   val mainFormula = Or( leftDisjunct, rightDisjunct )
 
-  override def auxIndices = Seq( Seq( Suc( 0 ) ) )
+  override def auxIndices = Vector( List( Suc( 0 ) ) )
 
   override def name = "∨:i1"
 
@@ -549,7 +549,7 @@ case class OrIntro2Rule( subProof: NDProof, leftDisjunct: Formula )
   val rightDisjunct = premise( Suc( 0 ) )
   val mainFormula = Or( leftDisjunct, rightDisjunct )
 
-  override def auxIndices = Seq( Seq( Suc( 0 ) ) )
+  override def auxIndices = Vector( List( Suc( 0 ) ) )
 
   override def name = "∨:i2"
 
@@ -580,7 +580,7 @@ case class ImpElimRule( leftSubProof: NDProof, rightSubProof: NDProof )
     case _                               => throw NDRuleCreationException( s"Proposed main formula $implication is not an implication." )
   }
 
-  def auxIndices = Seq( Seq( Suc( 0 ) ), Seq( Suc( 0 ) ) )
+  def auxIndices = Vector( List( Suc( 0 ) ), List( Suc( 0 ) ) )
 
   override def name = "→:e"
 
@@ -602,13 +602,13 @@ case class ImpElimRule( leftSubProof: NDProof, rightSubProof: NDProof )
 case class ImpIntroRule( subProof: NDProof, aux: SequentIndex )
     extends UnaryNDProof with CommonRule {
 
-  validateIndices( premise, Seq( aux ) )
+  validateIndices( premise, List( aux ) )
 
   val impPremise = premise( aux )
   val impConclusion = premise( Suc( 0 ) )
   val mainFormula = Imp( impPremise, impConclusion )
 
-  override def auxIndices = Seq( Seq( aux, Suc( 0 ) ) )
+  override def auxIndices = Vector( List( aux, Suc( 0 ) ) )
 
   override def name = "→:i"
 
@@ -629,9 +629,9 @@ object ImpIntroRule extends ConvenienceConstructor( "ImpIntroRule" ) {
   def apply( subProof: NDProof, impPremise: IndexOrFormula ): ImpIntroRule = {
     val premise = subProof.endSequent
 
-    val ( antIndices, sucIndices ) = findAndValidate( premise )( Seq( impPremise ), Left( Suc( 0 ) ) )
+    val ( antIndices, sucIndices ) = findAndValidate( premise )( List( impPremise ), Left( Suc( 0 ) ) )
 
-    new ImpIntroRule( subProof, Ant( antIndices( 0 ) ) )
+    new ImpIntroRule( subProof, Ant( antIndices.head ) )
   }
 
   /**
@@ -646,7 +646,7 @@ object ImpIntroRule extends ConvenienceConstructor( "ImpIntroRule" ) {
     val premise = subProof.endSequent
 
     if ( premise.antecedent.size == 1 ) apply( subProof, Ant( 0 ) )
-    else if ( premise.antecedent.size == 0 ) throw NDRuleCreationException( s"Antecedent of $premise doesn't contain any elements." )
+    else if ( premise.antecedent.isEmpty ) throw NDRuleCreationException( s"Antecedent of $premise doesn't contain any elements." )
     else throw NDRuleCreationException( s"Antecedent of $premise has more than one element, " +
       s"the formula serving as antecedent of the implication should be specified." )
   }
@@ -673,7 +673,7 @@ case class NegElimRule( leftSubProof: NDProof, rightSubProof: NDProof )
 
   val mainFormula = if ( negatedFormula == Neg( formula ) ) Bottom() else throw NDRuleCreationException( s"Formula $negatedFormula is not the negation of $formula." )
 
-  def auxIndices = Seq( Seq( Suc( 0 ) ), Seq( Suc( 0 ) ) )
+  def auxIndices = Vector( List( Suc( 0 ) ), List( Suc( 0 ) ) )
 
   override def name = "¬:e"
 
@@ -695,7 +695,7 @@ case class NegElimRule( leftSubProof: NDProof, rightSubProof: NDProof )
 case class NegIntroRule( subProof: NDProof, aux: SequentIndex )
     extends UnaryNDProof with CommonRule {
 
-  validateIndices( premise, Seq( aux ) )
+  validateIndices( premise, List( aux ) )
 
   val bottom = premise( Suc( 0 ) )
 
@@ -704,7 +704,7 @@ case class NegIntroRule( subProof: NDProof, aux: SequentIndex )
   val formula = premise( aux )
   val mainFormula = Neg( formula )
 
-  override def auxIndices = Seq( Seq( aux, Suc( 0 ) ) )
+  override def auxIndices = Vector( List( aux, Suc( 0 ) ) )
 
   override def name = "¬:i"
 
@@ -725,9 +725,9 @@ object NegIntroRule extends ConvenienceConstructor( "NegIntroRule" ) {
   def apply( subProof: NDProof, negation: IndexOrFormula ): NegIntroRule = {
     val premise = subProof.endSequent
 
-    val ( antIndices, sucIndices ) = findAndValidate( premise )( Seq( negation ), Left( Suc( 0 ) ) )
+    val ( antIndices, sucIndices ) = findAndValidate( premise )( List( negation ), Left( Suc( 0 ) ) )
 
-    new NegIntroRule( subProof, Ant( antIndices( 0 ) ) )
+    new NegIntroRule( subProof, Ant( antIndices.head ) )
   }
 
   /**
@@ -741,7 +741,7 @@ object NegIntroRule extends ConvenienceConstructor( "NegIntroRule" ) {
     val premise = subProof.endSequent
 
     if ( premise.antecedent.size == 1 ) apply( subProof, Ant( 0 ) )
-    else if ( premise.antecedent.size == 0 ) throw NDRuleCreationException( s"Antecedent of $premise doesn't contain any elements." )
+    else if ( premise.antecedent.isEmpty ) throw NDRuleCreationException( s"Antecedent of $premise doesn't contain any elements." )
     else throw NDRuleCreationException( s"Antecedent of $premise has more than one element, the formula to be negated should be specified." )
 
   }
@@ -758,7 +758,7 @@ case class TopIntroRule() extends InitialSequent {
 
   def mainFormula = Top()
 
-  def conclusion = NDSequent( Seq(), mainFormula )
+  def conclusion = NDSequent( Vector(), mainFormula )
 
   override def name = "⊤:i"
 }
@@ -782,7 +782,7 @@ case class BottomElimRule( subProof: NDProof, mainFormula: Formula )
 
   require( bottom == Bottom(), s"Formula $bottom is not ⊥." )
 
-  override def auxIndices = Seq( Seq( Suc( 0 ) ) )
+  override def auxIndices = Vector( List( Suc( 0 ) ) )
 
   override def name = "⊥:e"
 
@@ -821,7 +821,7 @@ case class ForallIntroRule( subProof: NDProof, eigenVariable: Var, quantifiedVar
 
   override def name = "∀:i"
 
-  def auxIndices = Seq( Seq( Suc( 0 ) ) )
+  def auxIndices = Vector( List( Suc( 0 ) ) )
 
   override def mainFormulaSequent = Sequent() :+ mainFormula
 }
@@ -842,7 +842,7 @@ object ForallIntroRule extends ConvenienceConstructor( "ForallIntroRule" ) {
 
       val premise = subProof.endSequent
 
-      val ( _, indices ) = findAndValidate( premise )( Seq(), Right( auxFormula ) )
+      val ( _, indices ) = findAndValidate( premise )( Nil, Right( auxFormula ) )
 
       ForallIntroRule( subProof, eigenVariable, v )
 
@@ -871,7 +871,7 @@ case class ForallElimRule( subProof: NDProof, A: Formula, term: Expr, v: Var )
 
   override def name = "∀:e"
 
-  def auxIndices = Seq( Seq( Suc( 0 ) ) )
+  def auxIndices = Vector( List( Suc( 0 ) ) )
 
   override def mainFormulaSequent = Sequent() :+ mainFormula
 }
@@ -920,7 +920,7 @@ case class ExistsIntroRule( subProof: NDProof, A: Formula, term: Expr, v: Var )
 
   override def name = "∃:i"
 
-  def auxIndices = Seq( Seq( Suc( 0 ) ) )
+  def auxIndices = Vector( List( Suc( 0 ) ) )
 
   override def mainFormulaSequent = Sequent() :+ mainFormula
 }
@@ -982,7 +982,7 @@ object ExistsIntroRule extends ConvenienceConstructor( "ExistsIntroRule" ) {
 case class ExistsElimRule( leftSubProof: NDProof, rightSubProof: NDProof, aux: SequentIndex, eigenVariable: Var )
     extends BinaryNDProof with CommonRule with Eigenvariable {
 
-  validateIndices( rightPremise, Seq( aux ) )
+  validateIndices( rightPremise, List( aux ) )
 
   val ( existentialFormula, leftContext ) = leftPremise focus Suc( 0 )
 
@@ -1007,7 +1007,7 @@ case class ExistsElimRule( leftSubProof: NDProof, rightSubProof: NDProof, aux: S
 
   override def name = "∃:e"
 
-  def auxIndices = Seq( Seq( Suc( 0 ) ), Seq( aux, Suc( 0 ) ) )
+  def auxIndices = Vector( List( Suc( 0 ) ), List( aux, Suc( 0 ) ) )
 
   override def mainFormulaSequent = Sequent() :+ mainFormula
 }
@@ -1032,8 +1032,8 @@ object ExistsElimRule extends ConvenienceConstructor( "ExistsElimRule" ) {
 
         val premise = rightSubProof.endSequent
 
-        val ( indices, _ ) = findAndValidate( premise )( Seq( Right( auxFormula ) ), Left( Suc( 0 ) ) )
-        ExistsElimRule( leftSubProof, rightSubProof, Ant( indices( 0 ) ), eigenVariable )
+        val ( indices, _ ) = findAndValidate( premise )( List( Right( auxFormula ) ), Left( Suc( 0 ) ) )
+        ExistsElimRule( leftSubProof, rightSubProof, Ant( indices.head ), eigenVariable )
 
       case _ => throw NDRuleCreationException( s"Formula $existentialFormula is not existentially quantified." )
     }
@@ -1068,7 +1068,7 @@ object ExistsElimRule extends ConvenienceConstructor( "ExistsElimRule" ) {
  * @param mainFormula The axiom A.
  */
 case class TheoryAxiom( mainFormula: Formula ) extends InitialSequent {
-  def conclusion = NDSequent( Seq(), mainFormula )
+  def conclusion = NDSequent( Vector(), mainFormula )
   override def name = "th"
 }
 
@@ -1105,7 +1105,7 @@ case class EqualityElimRule( leftSubProof: NDProof, rightSubProof: NDProof, form
     BetaReduction.betaNormalize( substitution2( formulaA ) )
   else throw NDRuleCreationException( s"Formula $auxFormula is not equal to $formulaA with substitution $substitution1 applied to it." )
 
-  def auxIndices = Seq( Seq( Suc( 0 ) ), Seq( Suc( 0 ) ) )
+  def auxIndices = Vector( List( Suc( 0 ) ), List( Suc( 0 ) ) )
 
   override def name = "eq:e"
 
@@ -1154,7 +1154,7 @@ object EqualityElimRule extends ConvenienceConstructor( "EqualityElimRule" ) {
 case class EqualityIntroRule( t: Expr ) extends InitialSequent {
 
   override def name = "eq:i"
-  override def conclusion = NDSequent( Seq(), Eq( t, t ) )
+  override def conclusion = NDSequent( Vector(), Eq( t, t ) )
   def mainFormula = Eq( t, t )
 }
 
@@ -1175,7 +1175,7 @@ case class EqualityIntroRule( t: Expr ) extends InitialSequent {
  * @param eigenVars  The eigenvariables of this case: x,,1,,, ..., x,,n,,, y,,1,,, ..., y,,n,,  (these need to correspond to the order in c)
  */
 case class InductionCase( proof: NDProof, constructor: Const,
-                          hypotheses: Seq[SequentIndex], eigenVars: Seq[Var] ) {
+                          hypotheses: List[SequentIndex], eigenVars: List[Var] ) {
   val FunctionType( indTy, fieldTypes ) = constructor.ty
   require( fieldTypes == eigenVars.map( _.ty ) )
 
@@ -1207,7 +1207,7 @@ case class InductionCase( proof: NDProof, constructor: Const,
  * @param cases A sequence of proofs showing that each type constructor preserves the validity of the main formula.
  * @param formula The formula we want to prove via induction.
  */
-case class InductionRule( cases: Seq[InductionCase], formula: Abs, term: Expr ) extends CommonRule {
+case class InductionRule( cases: Vector[InductionCase], formula: Abs, term: Expr ) extends CommonRule {
   val Abs( quant @ Var( _, indTy ), qfFormula ) = formula
   require( term.ty == indTy )
   cases foreach { c =>
@@ -1221,8 +1221,8 @@ case class InductionRule( cases: Seq[InductionCase], formula: Abs, term: Expr ) 
 
   val mainFormula = BetaReduction.betaNormalize( formula( term ).asInstanceOf[Formula] )
   override protected def mainFormulaSequent = Sequent() :+ mainFormula
-  override def auxIndices: Seq[Seq[SequentIndex]] = cases map { c => c.hypotheses :+ Suc( 0 ) }
-  override def immediateSubProofs: Seq[NDProof] = cases map { _.proof }
+  override def auxIndices: Vector[List[SequentIndex]] = cases map { c => c.hypotheses :+ Suc( 0 ) }
+  override def immediateSubProofs: Vector[NDProof] = cases map { _.proof }
 
   private lazy val product = cases.flatMap { _.productIterator } :+ formula :+ term
   override def productArity = product.size
@@ -1248,8 +1248,8 @@ case class InductionRule( cases: Seq[InductionCase], formula: Abs, term: Expr ) 
 case class ExcludedMiddleRule( leftSubProof: NDProof, aux1: SequentIndex, rightSubProof: NDProof, aux2: SequentIndex )
     extends BinaryNDProof with CommonRule {
 
-  validateIndices( leftPremise, Seq( aux1 ) )
-  validateIndices( rightPremise, Seq( aux2 ) )
+  validateIndices( leftPremise, List( aux1 ) )
+  validateIndices( rightPremise, List( aux2 ) )
 
   val formulaA = leftPremise( aux1 )
   val formulaNegA = rightPremise( aux2 )
@@ -1263,7 +1263,7 @@ case class ExcludedMiddleRule( leftSubProof: NDProof, aux1: SequentIndex, rightS
 
   override def name = "EM"
 
-  def auxIndices = Seq( Seq( aux1, Suc( 0 ) ), Seq( aux2, Suc( 0 ) ) )
+  def auxIndices = Vector( List( aux1, Suc( 0 ) ), List( aux2, Suc( 0 ) ) )
 
   override def mainFormulaSequent = Sequent() :+ mainFormula
 }
@@ -1284,7 +1284,7 @@ class ConvenienceConstructor( val longName: String ) {
    */
   protected def NDRuleCreationException( text: String ): NDRuleCreationException = new NDRuleCreationException( longName, text )
 
-  def findIndicesOrFormulasInPremise( premise: HOLSequent )( antIndicesFormulas: Seq[IndexOrFormula], sucIndexFormula: IndexOrFormula ): ( Seq[Formula], Seq[Int], Formula, Int ) = {
+  def findIndicesOrFormulasInPremise( premise: HOLSequent )( antIndicesFormulas: List[IndexOrFormula], sucIndexFormula: IndexOrFormula ): ( List[Formula], List[Int], Formula, Int ) = {
     val antReservedIndices = ( scala.collection.mutable.HashSet.empty[Int] /: antIndicesFormulas ) { ( acc, e ) =>
       e match {
         case Left( Ant( i ) ) => acc + i
@@ -1366,7 +1366,7 @@ class ConvenienceConstructor( val longName: String ) {
    * @param sucIndexFormula The index or formula in the succedent.
    * @return
    */
-  protected def findAndValidate( premise: HOLSequent )( antIndicesFormulas: Seq[IndexOrFormula], sucIndexFormula: IndexOrFormula ): ( Seq[Int], Int ) = {
+  protected def findAndValidate( premise: HOLSequent )( antIndicesFormulas: List[IndexOrFormula], sucIndexFormula: IndexOrFormula ): ( List[Int], Int ) = {
     val ( antFormulas, antIndices, sucFormula, sucIndex ) = findIndicesOrFormulasInPremise( premise )( antIndicesFormulas, sucIndexFormula )
     validateIndices( premise )( antFormulas, antIndices )
     ( antIndices, sucIndex )

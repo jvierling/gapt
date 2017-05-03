@@ -395,7 +395,7 @@ object equalityRightReduction {
               indCase.eigenVars, connector.child( indCase.conclusion )
             )
         }
-        val newProof = InductionRule( newIndCases, ind.formula, ind.term )
+        val newProof = InductionRule( newIndCases.toVector, ind.formula, ind.term )
         Some( ContractionMacroRule( newProof, equality.conclusion, false ), weakeningIntro )
 
       case _ => None
@@ -696,7 +696,7 @@ object equalityLeftReduction {
               indCase.eigenVars, connector.child( indCase.conclusion )
             )
         }
-        val newProof = InductionRule( newIndCases, ind.formula, ind.term )
+        val newProof = InductionRule( newIndCases.toVector, ind.formula, ind.term )
         Some( ContractionMacroRule( newProof, equality.conclusion, false ), weakeningIntro )
 
       case cut @ CutRule( _, _, _, _ ) =>

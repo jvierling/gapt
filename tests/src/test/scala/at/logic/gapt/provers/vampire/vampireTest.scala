@@ -107,7 +107,7 @@ class VampireTest extends Specification with SequentMatchers with SatMatchers {
     "large cnf" in { Vampire getResolutionProof CountingEquivalence( 2 ) must beSome }
 
     "smt splitting" in {
-      val smtVampire = new Vampire( extraArgs = Seq( "-sas", "z3" ) )
+      val smtVampire = new Vampire( extraArgs = List( "-sas", "z3" ) )
       if ( !smtVampire.isInstalled ) skipped
       smtVampire getExpansionProof hof"""
           a=b | b=c | c=d | !x f x = g x ->

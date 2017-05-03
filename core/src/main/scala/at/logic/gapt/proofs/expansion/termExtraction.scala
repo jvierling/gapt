@@ -5,6 +5,7 @@ import at.logic.gapt.expr.hol._
 import at.logic.gapt.grammars.{ RecursionScheme, Rule }
 import at.logic.gapt.proofs._
 import at.logic.gapt.proofs.lk.{ LKToExpansionProof, LKProof }
+import cats.implicits._
 
 /**
  * Extracts the instances used in a prenex FOL Pi_1 expansion tree / Sigma_1 expansion sequent.
@@ -97,9 +98,9 @@ class InstanceTermEncoding private ( val endSequent: HOLSequent, val instanceTer
    */
   val signedMatrices = matrices.map( identity, -_ )
 
-  private def getWeakQuantVars( esFormula: Formula, pol: Polarity ): Seq[Var] = esFormula match {
-    case All( x, t ) if pol.inAnt => x +: getWeakQuantVars( t, pol )
-    case Ex( x, t ) if pol.inSuc  => x +: getWeakQuantVars( t, pol )
+  private def getWeakQuantVars( esFormula: Formula, pol: Polarity ): List[Var] = esFormula match {
+    case All( x, t ) if pol.inAnt => x :: getWeakQuantVars( t, pol )
+    case Ex( x, t ) if pol.inSuc  => x :: getWeakQuantVars( t, pol )
     case All( x, t ) if pol.inSuc => getWeakQuantVars( t, pol )
     case Ex( x, t ) if pol.inAnt  => getWeakQuantVars( t, pol )
     case And( t, s )              => getWeakQuantVars( t, pol ) ++ getWeakQuantVars( s, pol )
@@ -107,7 +108,7 @@ class InstanceTermEncoding private ( val endSequent: HOLSequent, val instanceTer
     case Imp( t, s )              => getWeakQuantVars( t, !pol ) ++ getWeakQuantVars( s, pol )
     case Neg( t )                 => getWeakQuantVars( t, !pol )
     case Top() | Bottom() | Atom( _, _ ) =>
-      Seq()
+      Nil
   }
   /**
    * The quantified variables of each formula in the end-sequent.

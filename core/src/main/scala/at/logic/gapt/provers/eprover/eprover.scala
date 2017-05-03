@@ -14,8 +14,8 @@ import at.logic.gapt.utils.{ ExternalProgram, runProcess, withTempFile }
 object EProver extends EProver
 class EProver extends ResolutionProver with ExternalProgram {
   override def getResolutionProof( seq: Traversable[HOLClause] ): Option[ResolutionProof] =
-    renameConstantsToFi.wrap( seq.toSeq )(
-      ( renaming, cnf: Seq[HOLClause] ) => {
+    renameConstantsToFi.wrap( seq.toList )(
+      ( renaming, cnf: List[HOLClause] ) => {
         val labelledCNF = cnf.zipWithIndex.map { case ( clause, index ) => s"formula$index" -> clause.asInstanceOf[FOLClause] }.toMap
         val tptpIn = TPTPFOLExporter.exportLabelledCNF( labelledCNF ).toString
         val output = runProcess.withTempInputFile( Seq( "eproof", "--tptp3-format" ), tptpIn )
@@ -23,7 +23,7 @@ class EProver extends ResolutionProver with ExternalProgram {
         if ( lines.contains( "# SZS status Unsatisfiable" ) )
           RefutationSketchToResolution( TptpProofParser.parse(
             StringInputFile( lines.filterNot( _ startsWith "# " ).mkString( "\n" ) ),
-            labelledCNF mapValues { Seq( _ ) }
+            labelledCNF mapValues { List( _ ) }
           ) ).toOption
         else None
       }

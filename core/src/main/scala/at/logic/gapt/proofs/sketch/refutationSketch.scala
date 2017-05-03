@@ -1,15 +1,15 @@
 package at.logic.gapt.proofs.sketch
 
-import at.logic.gapt.expr.{ FOLAtom, Atom, clauseSubsumption }
+import at.logic.gapt.expr.{ FOLAtom, clauseSubsumption }
 import at.logic.gapt.proofs.resolution._
 import at.logic.gapt.proofs.{ FOLClause, HOLClause, SequentConnector, SequentProof }
 import at.logic.gapt.provers.ResolutionProver
-import at.logic.gapt.provers.escargot.{ Escargot, NonSplittingEscargot }
+import at.logic.gapt.provers.escargot.NonSplittingEscargot
 import at.logic.gapt.provers.sat.Sat4j
-
-import scala.collection.mutable
 import cats.instances.all._
 import cats.syntax.all._
+
+import scala.collection.mutable
 
 /**
  * Intermediate data structure intendend for the proof replay in the TPTP proof import.
@@ -20,9 +20,9 @@ import cats.syntax.all._
  * These two cases are modelled as [[SketchAxiom]] and [[SketchInference]].
  */
 sealed trait RefutationSketch extends SequentProof[FOLAtom, RefutationSketch] {
-  override def occConnectors = immediateSubProofs map { p => SequentConnector( conclusion, p.conclusion, p.conclusion map { _ => Seq() } ) }
-  override def mainIndices = Seq()
-  override def auxIndices = immediateSubProofs map { _ => Seq() }
+  override def occConnectors = immediateSubProofs map { p => SequentConnector( conclusion, p.conclusion, p.conclusion map { _ => Nil } ) }
+  override def mainIndices = Nil
+  override def auxIndices = immediateSubProofs map { _ => Nil }
 }
 
 /**
@@ -34,7 +34,7 @@ sealed trait RefutationSketch extends SequentProof[FOLAtom, RefutationSketch] {
  */
 case class SketchAxiom( axiom: FOLClause ) extends RefutationSketch {
   override def conclusion = axiom
-  override def immediateSubProofs: Seq[RefutationSketch] = Seq()
+  override def immediateSubProofs: Vector[RefutationSketch] = Vector()
 }
 
 /**
@@ -48,26 +48,26 @@ case class SketchAxiom( axiom: FOLClause ) extends RefutationSketch {
  * @param conclusion  Conclusion of the inference.
  * @param from  Premises of the inference.
  */
-case class SketchInference( conclusion: FOLClause, from: Seq[RefutationSketch] ) extends RefutationSketch {
-  override def immediateSubProofs = from
+case class SketchInference( conclusion: FOLClause, from: List[RefutationSketch] ) extends RefutationSketch {
+  override def immediateSubProofs = from.toVector
 
   override def productArity = 1 + from.size
   override def productElement( n: Int ) = if ( n == 0 ) conclusion else from( n - 1 )
 }
 
 case class SketchComponentIntro( component: AvatarDefinition ) extends RefutationSketch {
-  def immediateSubProofs = Seq()
+  def immediateSubProofs = Vector()
   def conclusion = component.clause.map( _.asInstanceOf[FOLAtom] )
 }
 case class SketchComponentElim( subProof: RefutationSketch, component: AvatarDefinition ) extends RefutationSketch {
-  def immediateSubProofs = Seq( subProof )
+  def immediateSubProofs = Vector( subProof )
   val conclusion = subProof.conclusion diff component.clause
 }
 
-case class SketchSplitCombine( splitCases: Seq[RefutationSketch] ) extends RefutationSketch {
+case class SketchSplitCombine( splitCases: List[RefutationSketch] ) extends RefutationSketch {
   for ( p <- splitCases ) require( p.conclusion.isEmpty, p )
 
-  override def immediateSubProofs = splitCases
+  override def immediateSubProofs = splitCases.toVector
   override def conclusion = FOLClause()
 
   override def productArity = splitCases.size
@@ -102,15 +102,15 @@ object RefutationSketchToResolution {
       case SketchAxiom( axiom ) => Right( Input( axiom ) )
       case s @ SketchInference( conclusion, from ) =>
         for {
-          solvedFrom <- from.toList.traverse( solve )
+          solvedFrom <- from.traverse( solve )
           deriv <- findDerivation( s.conclusion, solvedFrom ).map { Right( _ ) }.
             getOrElse { Left( UnprovableSketchInference( s ) ) }
         } yield deriv
       case SketchSplitCombine( cases ) =>
-        cases.toList.traverse( solve ).flatMap { solvedCases =>
+        cases.traverse( solve ).flatMap { solvedCases =>
           solvedCases.find( p => p.conclusion.isEmpty && p.assertions.isEmpty ).
-            orElse( Sat4j.getResolutionProof( solvedCases.map( AvatarContradiction( _ ) ) ) ).
-            orElse( NonSplittingEscargot.getResolutionProof( solvedCases.map( AvatarContradiction( _ ) ) ) ).
+            orElse( Sat4j.getResolutionProof( solvedCases.map( AvatarContradiction ) ) ).
+            orElse( NonSplittingEscargot.getResolutionProof( solvedCases.map( AvatarContradiction ) ) ).
             map( Right( _ ) ).getOrElse( Left( UnprovableSketchInference( s ) ) )
         }
       case SketchComponentElim( from, comp ) =>

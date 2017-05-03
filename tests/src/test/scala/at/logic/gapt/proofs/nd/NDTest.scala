@@ -44,7 +44,7 @@ class NDTest extends Specification with SatMatchers {
   }
 
   "LogicalAxiom" in {
-    val a1 = LogicalAxiom( hof"a", Seq( hof"b", hof"c" ) )
+    val a1 = LogicalAxiom( hof"a", Vector( hof"b", hof"c" ) )
 
     a1.conclusion must beValidSequent
   }
@@ -95,13 +95,13 @@ class NDTest extends Specification with SatMatchers {
 
     s5.conclusion( Suc( 0 ) ) mustEqual hof"(((s(x0:nat): nat) + (0:nat)): nat) = s(x0)"
 
-    val cases = Seq(
-      InductionCase( b2, hoc"0: nat", Seq.empty, Seq.empty ),
-      InductionCase( s5, hoc"s: nat>nat", Seq( Ant( 0 ) ), Seq( hov"x0: nat" ) )
+    val cases = Vector(
+      InductionCase( b2, hoc"0: nat", Nil, Nil ),
+      InductionCase( s5, hoc"s: nat>nat", List( Ant( 0 ) ), List( hov"x0: nat" ) )
     )
     val p = InductionRule( cases, Abs( Var( "x", TBase( "nat" ) ), hof"(((x: nat) + (0:nat)): nat) = x" ), le"x: nat" )
 
-    p.conclusion mustEqual Seq( hof"!(x: nat) ((x + (0:nat)): nat) = x", hof"!(x: nat) !(y: nat) (((s(x): nat) + y): nat) = s(x + y)" ) ++: Sequent() :+ hof"(((x: nat) + (0: nat)): nat) = x"
+    p.conclusion mustEqual Vector( hof"!(x: nat) ((x + (0:nat)): nat) = x", hof"!(x: nat) !(y: nat) (((s(x): nat) + y): nat) = s(x + y)" ) ++: Sequent() :+ hof"(((x: nat) + (0: nat)): nat) = x"
   }
 
   "Induction2" in {
@@ -121,15 +121,15 @@ class NDTest extends Specification with SatMatchers {
     val b3 = LogicalAxiom( px )
     val b4 = ImpElimRule( b2, b3 )
 
-    val c1 = InductionCase( a1, c0, Seq(), Seq() )
-    val c2 = InductionCase( b4, cs, Seq( Ant( 1 ) ), Seq( x ) )
-    val c3 = InductionRule( Seq( c1, c2 ), Abs( x, px ), x )
+    val c1 = InductionCase( a1, c0, Nil, Nil )
+    val c2 = InductionCase( b4, cs, List( Ant( 1 ) ), List( x ) )
+    val c3 = InductionRule( Vector( c1, c2 ), Abs( x, px ), x )
 
     val d1 = ForallIntroRule( c3, x, x )
     val d2 = ImpIntroRule( d1, Ant( 0 ) )
     val d3 = ImpIntroRule( d2 )
 
-    d3.conclusion mustEqual Seq() ++: Sequent() :+ hof"∀x (P(x:nat) ⊃ P(s(x))) ⊃ P(0) ⊃ ∀x P(x)"
+    d3.conclusion mustEqual Nil ++: Sequent() :+ hof"∀x (P(x:nat) ⊃ P(s(x))) ⊃ P(0) ⊃ ∀x P(x)"
   }
 
   "ImpElim" in {
@@ -141,7 +141,7 @@ class NDTest extends Specification with SatMatchers {
   }
 
   "ImpIntro" in {
-    val a1 = LogicalAxiom( hof"a", Seq( hof"b" ) )
+    val a1 = LogicalAxiom( hof"a", Vector( hof"b" ) )
     val a2 = ImpIntroRule( a1, Ant( 0 ) )
     val a3 = ImpIntroRule( a2 )
 
@@ -191,14 +191,14 @@ class NDTest extends Specification with SatMatchers {
     val a1 = LogicalAxiom( hof"P a b" )
     val a2 = ExistsIntroRule( a1, hof"P x b", hoc"a : i", hov"x" )
 
-    a2.conclusion mustEqual Seq( hof"P a b" ) ++: Sequent() :+ hof"?x P x b"
+    a2.conclusion mustEqual Vector( hof"P a b" ) ++: Sequent() :+ hof"?x P x b"
   }
 
   "ExistsIntro 2" in {
     val a1 = LogicalAxiom( hof"P a b" )
     val a3 = ExistsIntroRule( a1, hof"?x P x b", hoc"a : i" )
 
-    a3.conclusion mustEqual Seq( hof"P a b" ) ++: Sequent() :+ hof"?x P x b"
+    a3.conclusion mustEqual Vector( hof"P a b" ) ++: Sequent() :+ hof"?x P x b"
   }
 
   "ExistsIntro 3" in {
@@ -206,7 +206,7 @@ class NDTest extends Specification with SatMatchers {
     val a5 = ExistsIntroRule( a4, hof"?x P x b" )
     val a6 = ExistsIntroRule( a5, hof"?y ?x P x y", hoc"b : i" )
 
-    a6.conclusion mustEqual Seq( hof"P x b" ) ++: Sequent() :+ hof"?y ?x P x y"
+    a6.conclusion mustEqual Vector( hof"P x b" ) ++: Sequent() :+ hof"?y ?x P x y"
   }
 
   "ExistsElim" in {
@@ -217,7 +217,7 @@ class NDTest extends Specification with SatMatchers {
     val a5 = ImpElimRule( a3, a4 )
     val a6 = ExistsElimRule( a1, a5, hov"y" )
 
-    a6.conclusion mustEqual Seq( hof"?x P x", hof"!x (P x -> Q)" ) ++: Sequent() :+ hof"Q"
+    a6.conclusion mustEqual Vector( hof"?x P x", hof"!x (P x -> Q)" ) ++: Sequent() :+ hof"Q"
   }
 
   "ExcludedMiddle" in {
@@ -241,7 +241,7 @@ class NDTest extends Specification with SatMatchers {
     val a2 = LogicalAxiom( fof"x2=x3" )
     val a3 = EqualityElimRule( a2, a1 )
 
-    a3.conclusion mustEqual Seq( fof"x2 = x3", fof"!x0 !x1 P x2" ) ++: Sequent() :+ fof"!x0 !x1 P x3"
+    a3.conclusion mustEqual Vector( fof"x2 = x3", fof"!x0 !x1 P x2" ) ++: Sequent() :+ fof"!x0 !x1 P x3"
   }
 
   "EqualityElim 2" in {
@@ -249,28 +249,28 @@ class NDTest extends Specification with SatMatchers {
     val a2 = LogicalAxiom( fof"x2=x3" )
     val a4 = EqualityElimRule( a2, a1, fof"!x0!x1 P(x2)", fov"x2" )
 
-    a4.conclusion mustEqual Seq( fof"x2 = x3", fof"!x0 !x1 P x2" ) ++: Sequent() :+ fof"!x0 !x1 P x3"
+    a4.conclusion mustEqual Vector( fof"x2 = x3", fof"!x0 !x1 P x2" ) ++: Sequent() :+ fof"!x0 !x1 P x3"
   }
 
   "EqualityElim 3" in {
     val b1 = LogicalAxiom( fof"!x0!x1 P(x1)" )
     val b2 = LogicalAxiom( fof"x1=x2" )
     val b4 = EqualityElimRule( b2, b1, fof"!x0!x1 P(x1)", fov"x1" )
-    b4.conclusion mustEqual Seq( fof"x1 = x2", fof"!x0 !x1 P x1" ) ++: Sequent() :+ fof"!x0 !x1 P x1"
+    b4.conclusion mustEqual Vector( fof"x1 = x2", fof"!x0 !x1 P x1" ) ++: Sequent() :+ fof"!x0 !x1 P x1"
   }
 
   "EqualityElim 4" in {
     val c1 = LogicalAxiom( fof"!x0!x1 P(x2)" )
     val c2 = LogicalAxiom( fof"x2=x1" )
     val c3 = EqualityElimRule( c2, c1 )
-    c3.conclusion mustEqual Seq( fof"x2 = x1", fof"!x0 !x1 P x2" ) ++: Sequent() :+ fof"!x0 !x1_0 P x1"
+    c3.conclusion mustEqual Vector( fof"x2 = x1", fof"!x0 !x1 P x2" ) ++: Sequent() :+ fof"!x0 !x1_0 P x1"
   }
 
   "EqualityElim 5" in {
     val c1 = LogicalAxiom( fof"!x0!x1 P(x2)" )
     val c2 = LogicalAxiom( fof"x2=x1" )
     val c4 = EqualityElimRule( c2, c1, fof"!x0!x1 P(x2)", fov"x2" )
-    c4.conclusion mustEqual Seq( fof"x2 = x1", fof"!x0 !x1 P x2" ) ++: Sequent() :+ fof"!x0 !x1_0 P x1"
+    c4.conclusion mustEqual Vector( fof"x2 = x1", fof"!x0 !x1 P x2" ) ++: Sequent() :+ fof"!x0 !x1_0 P x1"
   }
 
   "EqualityElim 6" in {
@@ -279,14 +279,14 @@ class NDTest extends Specification with SatMatchers {
     val a3 = EqualityElimRule( a1, a2 )
     val a4 = LogicalAxiom( hof"t=u" )
     val a5 = EqualityElimRule( a4, a3 )
-    a5.conclusion mustEqual Seq( hof"t=u", hof"s=t", hof"!t P(t,s)" ) ++: Sequent() :+ hof"!t P(t,u)"
+    a5.conclusion mustEqual Vector( hof"t=u", hof"s=t", hof"!t P(t,s)" ) ++: Sequent() :+ hof"!t P(t,u)"
   }
 
   "EqualityElim 7" in {
     val a1 = LogicalAxiom( hof"s=t" )
     val a2 = LogicalAxiom( hof"!s P(s) & Q(s)" )
     val a3 = EqualityElimRule( a1, a2 )
-    a3.conclusion mustEqual Seq( hof"s=t", hof"!s P(s) & Q(s)" ) ++: Sequent() :+ hof"!s P(s) & Q(t)"
+    a3.conclusion mustEqual Vector( hof"s=t", hof"!s P(s) & Q(s)" ) ++: Sequent() :+ hof"!s P(s) & Q(t)"
   }
 
   "EqualityIntro fov" in {

@@ -11,11 +11,11 @@ import at.logic.gapt.proofs.sketch.RefutationSketchToResolution
 import at.logic.gapt.provers.{ ResolutionProver, renameConstantsToFi }
 import at.logic.gapt.utils.{ ExternalProgram, runProcess }
 
-object Vampire extends Vampire( commandName = "vampire", extraArgs = Seq() )
-class Vampire( commandName: String = "vampire", extraArgs: Seq[String] = Seq() ) extends ResolutionProver with ExternalProgram {
+object Vampire extends Vampire( commandName = "vampire", extraArgs = Nil )
+class Vampire( commandName: String = "vampire", extraArgs: List[String] = Nil ) extends ResolutionProver with ExternalProgram {
   override def getResolutionProof( seq: Traversable[HOLClause] ): Option[ResolutionProof] =
-    renameConstantsToFi.wrap( seq.toSeq )(
-      ( renaming, cnf: Seq[HOLClause] ) => {
+    renameConstantsToFi.wrap( seq.toList )(
+      ( renaming, cnf: List[HOLClause] ) => {
         val labelledCNF = cnf.zipWithIndex.map { case ( clause, index ) => s"formula$index" -> clause.asInstanceOf[FOLClause] }.toMap
         val tptpIn = TPTPFOLExporter.exportLabelledCNF( labelledCNF ).toString
         val output = runProcess.withTempInputFile(

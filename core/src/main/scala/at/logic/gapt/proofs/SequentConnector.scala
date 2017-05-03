@@ -15,7 +15,7 @@ import scala.collection.mutable
  * @param parentsSequent A sequent of lists of indices such that for each index i of lowerSequent, parentsSequent(i)
  *                       is the list of indices of the parents of i in upperSequent.
  */
-case class SequentConnector( lowerSizes: ( Int, Int ), upperSizes: ( Int, Int ), parentsSequent: Sequent[Seq[SequentIndex]] ) {
+case class SequentConnector( lowerSizes: ( Int, Int ), upperSizes: ( Int, Int ), parentsSequent: Sequent[List[SequentIndex]] ) {
   require( parentsSequent.sizes == lowerSizes, s"Sizes ${parentsSequent.sizes} of parents sequent $parentsSequent don't agree with lower sizes $lowerSizes." )
   require( parentsSequent.elements.flatten.forall { _ withinSizes upperSizes } )
 
@@ -27,7 +27,7 @@ case class SequentConnector( lowerSizes: ( Int, Int ), upperSizes: ( Int, Int ),
    * @return A sequent of lists of indices such that for each index i of upperSequent, childrenSequent(i)
    *                       is the list of indices of the children of i in lowerSequent.
    */
-  def childrenSequent: Sequent[Seq[SequentIndex]] = Sequent( antU, sucU ) map children
+  def childrenSequent: Sequent[List[SequentIndex]] = Sequent( antU, sucU ) map children
 
   /**
    * Given a SequentIndex for the lower sequent, this returns the list of parents of that occurrence in the upper sequent (if defined).
@@ -35,7 +35,7 @@ case class SequentConnector( lowerSizes: ( Int, Int ), upperSizes: ( Int, Int ),
    * @param idx An index of lowerSequent.
    * @return The list of parents of idx.
    */
-  def parents( idx: SequentIndex ): Seq[SequentIndex] = parentsSequent( idx )
+  def parents( idx: SequentIndex ): List[SequentIndex] = parentsSequent( idx )
 
   /**
    * Given a SequentIndex for the lower sequent, this returns the parent of that occurrence in the upper sequent
@@ -59,7 +59,7 @@ case class SequentConnector( lowerSizes: ( Int, Int ), upperSizes: ( Int, Int ),
    * The intended use-case is that lowerTs is a sequent of labels for the formulas in the lower sequent.
    * parents(lowerTs) will then contain the correct labels for the formulas in the upper sequent.
    */
-  def parents[T]( lowerTs: Sequent[T] ): Sequent[Seq[T]] = {
+  def parents[T]( lowerTs: Sequent[T] ): Sequent[List[T]] = {
     require( lowerTs.sizes == lowerSizes )
     childrenSequent map { _ map { lowerTs( _ ) } }
   }
@@ -70,8 +70,8 @@ case class SequentConnector( lowerSizes: ( Int, Int ), upperSizes: ( Int, Int ),
    */
   def parent[T]( lowerTs: Sequent[T], default: => T = ??? ): Sequent[T] =
     parents( lowerTs ) map {
-      case Seq( t ) => t
-      case _        => default
+      case List( t ) => t
+      case _         => default
     }
 
   /**
@@ -80,7 +80,7 @@ case class SequentConnector( lowerSizes: ( Int, Int ), upperSizes: ( Int, Int ),
    * @param idx An index of upperSequent.
    * @return The list of children of idx.
    */
-  def children( idx: SequentIndex ): Seq[SequentIndex] =
+  def children( idx: SequentIndex ): List[SequentIndex] =
     if ( idx withinSizes upperSizes )
       parentsSequent indicesWhere { _ contains idx }
     else
@@ -94,9 +94,9 @@ case class SequentConnector( lowerSizes: ( Int, Int ), upperSizes: ( Int, Int ),
    * @return The unique child of idx.
    */
   def child( idx: SequentIndex ): SequentIndex = children( idx ) match {
-    case Seq()    => throw new NoSuchElementException( s"When calling child on SequentConnector $this: Index $idx has no child in $parentsSequent." )
-    case Seq( c ) => c
-    case _        => throw new Exception( s"When calling child on SequentConnector $this: Index $idx has more than one child in $parentsSequent." )
+    case Nil       => throw new NoSuchElementException( s"When calling child on SequentConnector $this: Index $idx has no child in $parentsSequent." )
+    case List( c ) => c
+    case _         => throw new Exception( s"When calling child on SequentConnector $this: Index $idx has more than one child in $parentsSequent." )
   }
 
   /**
@@ -153,7 +153,7 @@ case class SequentConnector( lowerSizes: ( Int, Int ), upperSizes: ( Int, Int ),
     require( child withinSizes lowerSizes )
     require( parent withinSizes upperSizes )
     SequentConnector( lowerSizes, upperSizes,
-      parentsSequent.updated( child, parents( child ) diff Seq( parent ) ) )
+      parentsSequent.updated( child, parents( child ) diff List( parent ) ) )
   }
 }
 
@@ -164,12 +164,12 @@ object SequentConnector {
    * @param sequent A sequent.
    * @return An SequentConnector that connects every index of sequent to itself.
    */
-  def apply( sequent: Sequent[_] ): SequentConnector = SequentConnector( sequent, sequent, sequent.indicesSequent map { Seq( _ ) } )
+  def apply( sequent: Sequent[_] ): SequentConnector = SequentConnector( sequent, sequent, sequent.indicesSequent map { List( _ ) } )
 
   /**
    * Connects two given sequents via a given parentsSequent.
    */
-  def apply( lowerSequent: Sequent[_], upperSequent: Sequent[_], parentsSequent: Sequent[Seq[SequentIndex]] ): SequentConnector = SequentConnector( lowerSequent.sizes, upperSequent.sizes, parentsSequent )
+  def apply( lowerSequent: Sequent[_], upperSequent: Sequent[_], parentsSequent: Sequent[Seq[SequentIndex]] ): SequentConnector = SequentConnector( lowerSequent.sizes, upperSequent.sizes, parentsSequent map { _.toList } )
 
   /**
    * Creates an SequentConnector that connects all occurrences of an object in the antecedents of two sequents, and analogously
@@ -193,7 +193,7 @@ object SequentConnector {
           filter( newIdx.sameSideAs ).
           head
         alreadyUsedOldIndices += oldIdx
-        Seq( oldIdx )
+        List( oldIdx )
     } )
   }
 }

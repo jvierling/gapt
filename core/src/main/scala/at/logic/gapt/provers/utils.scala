@@ -11,7 +11,7 @@ object renameConstantsToFi {
   private def getRenaming[I, O]( obj: I )( implicit ev: Replaceable[I, O] ): Map[Const, Const] =
     getRenaming( containedNames( obj ).collect { case c: Const => c } )
   private def getRenaming( constants: Set[Const] ): Map[Const, Const] =
-    constants.toSeq.zipWithIndex.map {
+    constants.toList.zipWithIndex.map {
       case ( c @ EqC( _ ), _ ) => c -> c
       case ( c, i )            => c -> Const( mkName( i ), c.ty )
     }.toMap
